@@ -34,7 +34,10 @@ class cMpvPlayer:public cPlayer
     void HandlePropertyChange(mpv_event *event);  // handle change mpv property
     void HandleTracksChange();                    // handle mpv track information
     static void *ObserverThread(void *handle);
-
+#ifdef USE_KEYPRESS
+    pthread_t XEventThreadHandle;     // Xorg event thread
+    static void *XEventThread(void *handle);
+#endif
     // Player status variables
     int PlayerPaused;                 // player paused
     int PlayerDiscNav;                // discnav active

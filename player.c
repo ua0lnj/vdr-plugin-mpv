@@ -18,6 +18,7 @@
 #include <X11/extensions/Xrandr.h>
 #endif
 #include <X11/Xlib-xcb.h>
+#include <X11/Xutil.h>
 
 using std::vector;
 
@@ -37,6 +38,76 @@ using std::vector;
 volatile int cMpvPlayer::running = 0;
 cMpvPlayer *cMpvPlayer::PlayerHandle = NULL;
 std::string LocaleSave;
+
+Display *Dpy = NULL;
+xcb_connection_t *Connect;
+xcb_window_t VideoWindow;
+
+#ifdef USE_KEYPRESS
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+extern void FeedKeyPress(const char *, const char *, int, int, const char *);
+#ifdef __cplusplus
+}
+#endif
+
+void *cMpvPlayer::XEventThread(void *handle)
+{
+  XEvent event;
+  KeySym keysym;
+  const char *keynam;
+  char buf[64];
+  char letter[64];
+  int letter_len;
+  cMpvPlayer *Player = (cMpvPlayer*) handle;
+
+  while (Player->PlayerIsRunning())
+  {
+    if(Dpy && Connect && VideoWindow) {
+        XWindowEvent(Dpy, VideoWindow, KeyPressMask, &event);
+        switch (event.type) {
+          case KeyPress:
+	    letter_len =
+		XLookupString(&event.xkey, letter, sizeof(letter) - 1, &keysym, NULL);
+	    if (letter_len < 0) {
+		letter_len = 0;
+	    }
+	    letter[letter_len] = '\0';
+	    if (keysym == NoSymbol) {
+		dsyslog("video/event: No symbol for %d\n", event.xkey.keycode);
+		break;
+	    }
+	    keynam = XKeysymToString(keysym);
+	    // check for key modifiers (Alt/Ctrl)
+	    if (event.xkey.state & (Mod1Mask | ControlMask)) {
+		if (event.xkey.state & Mod1Mask) {
+		    strcpy(buf, "Alt+");
+		} else {
+		    buf[0] = '\0';
+		}
+		if (event.xkey.state & ControlMask) {
+		    strcat(buf, "Ctrl+");
+		}
+		strncat(buf, keynam, sizeof(buf) - 10);
+		keynam = buf;
+	    }
+	    FeedKeyPress("XKeySym", keynam, 0, 0, letter);
+            break;
+          default:
+            break;
+        }
+    }
+    usleep(1000);
+  }
+#ifdef DEBUG
+  dsyslog("[mpv] XEvent thread ended\n");
+#endif
+  return handle;
+}
+#endif
 
 // check mpv errors and send them to log
 static inline void check_error(int status)
@@ -196,54 +267,84 @@ double cMpvPlayer::FramesPerSecond()
 
 void cMpvPlayer::PlayerHideCursor()
 {
-  Display *Dpy;
-  xcb_connection_t *Connect;
   int screen_nr;
   int i;
   int len;
   xcb_screen_iterator_t screen_iter;
-  xcb_screen_t const *screen;
+  xcb_screen_t *screen;
   xcb_query_tree_cookie_t  cookie;
   xcb_query_tree_reply_t *reply;
   xcb_window_t *child;
 
-  Dpy = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
+  if (!Dpy)
+    Dpy = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
   if (!Dpy) return;
 
-  Connect = XGetXCBConnection(Dpy);
+  if (!Connect)
+    Connect = XGetXCBConnection(Dpy);
   if (!Connect) return;
 
-  screen_nr = DefaultScreen(Dpy);
-
-  screen_iter = xcb_setup_roots_iterator(xcb_get_setup(Connect));
-  for (i = 0; i < screen_nr; ++i)
+  if(!VideoWindow)
   {
-    xcb_screen_next(&screen_iter);
+    screen_nr = DefaultScreen(Dpy);
+
+    screen_iter = xcb_setup_roots_iterator(xcb_get_setup(Connect));
+    for (i = 0; i < screen_nr; ++i)
+    {
+      xcb_screen_next(&screen_iter);
+    }
+    screen = screen_iter.data;
+
+    cookie = xcb_query_tree(Connect,screen->root);
+    reply = xcb_query_tree_reply(Connect, cookie, 0);
+    len = xcb_query_tree_children_length(reply);
+
+    if (len)
+    {
+      uint32_t values[4];
+      xcb_pixmap_t pixmap;
+      xcb_cursor_t cursor;
+
+      xcb_get_property_cookie_t procookie;
+      xcb_get_property_reply_t *proreply;
+
+      xcb_atom_t property = XCB_ATOM_WM_NAME;
+
+      child = xcb_query_tree_children(reply);
+      pixmap = xcb_generate_id(Connect);
+
+      for (i = 0; i < len; i++) {
+        procookie = xcb_get_property(Connect, 0, child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
+        if (proreply = xcb_get_property_reply(Connect, procookie, NULL)) {
+            if (xcb_get_property_value_length(proreply) > 0) {
+              string name = (char*)xcb_get_property_value(proreply);
+              if (name.find("mpv") != string::npos) {
+                  VideoWindow = child[i];
+                  break;
+              }
+            }
+        }
+        free(proreply);
+      }
+
+      if (VideoWindow) {
+        xcb_create_pixmap(Connect, 1, pixmap, VideoWindow, 1, 1);
+        cursor = xcb_generate_id(Connect);
+        xcb_create_cursor(Connect, cursor, pixmap, pixmap, 0, 0, 0, 0, 0, 0, 1, 1);
+
+        values[0] = cursor;
+        xcb_change_window_attributes(Connect, VideoWindow, XCB_CW_CURSOR, values);
+      }
+    }
+    free(reply);
   }
-  screen = screen_iter.data;
-
-  cookie = xcb_query_tree(Connect,screen->root);
-  reply = xcb_query_tree_reply(Connect, cookie, 0);
-  len = xcb_query_tree_children_length(reply);
-
-  if (len)
-  {
-    uint32_t values[4];
-    xcb_pixmap_t pixmap;
-    xcb_cursor_t cursor;
-
-    child = xcb_query_tree_children(reply);
-    pixmap = xcb_generate_id(Connect);
-    xcb_create_pixmap(Connect, 1, pixmap, child[0], 1, 1);
-    cursor = xcb_generate_id(Connect);
-    xcb_create_cursor(Connect, cursor, pixmap, pixmap, 0, 0, 0, 0, 0, 0, 1, 1);
-
-    values[0] = cursor;
-    xcb_change_window_attributes(Connect, child[0], XCB_CW_CURSOR, values);
+#ifdef USE_KEYPRESS
+  if (VideoWindow) {
+    XSelectInput (Dpy, VideoWindow, KeyPressMask);
+    XMapWindow (Dpy, VideoWindow); 
   }
-  xcb_flush(Connect);
-  free(reply);
-  XCloseDisplay(Dpy);
+#endif
+  XFlush(Dpy);
 }
 
 void cMpvPlayer::PlayerStart()
@@ -371,6 +472,9 @@ void cMpvPlayer::PlayerStart()
 
   // start thread to observe and react on mpv events
   pthread_create(&ObserverThreadHandle, NULL, ObserverThread, this);
+#ifdef USE_KEYPRESS
+  pthread_create(&XEventThreadHandle, NULL, XEventThread, this);
+#endif
 }
 
 void cMpvPlayer::HandlePropertyChange(mpv_event *event)
@@ -499,6 +603,19 @@ void cMpvPlayer::OsdClose()
 
 void cMpvPlayer::Shutdown()
 {
+#ifdef USE_KEYPRESS
+  if (XEventThreadHandle){
+    void *res;
+    int s;
+    pthread_cancel(XEventThreadHandle);
+    while(res != PTHREAD_CANCELED){
+      s= pthread_join(XEventThreadHandle, &res);
+      esyslog("cansel %d\n",s);
+      if (s) break;
+    }
+  }
+#endif
+
   mediaTitle = "";
   running = 0;
   MpvPluginConfig->TitleOverride = "";
@@ -507,6 +624,21 @@ void cMpvPlayer::Shutdown()
 
   if (ObserverThreadHandle)
     pthread_cancel(ObserverThreadHandle);
+
+  VideoWindow = 0;
+
+  if (Connect) {
+    xcb_flush(Connect);
+    Connect = NULL;
+  }
+
+  if (Dpy) {
+    XFlush(Dpy);
+#ifndef USE_KEYPRESS
+    XCloseDisplay(Dpy);
+#endif
+    Dpy = NULL;
+  }
 
   mpv_terminate_destroy(hMpv);
   hMpv = NULL;
@@ -546,7 +678,6 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
   if (!MpvPluginConfig->RefreshRate)
     return;
 
-  Display *Dpy;
   int RefreshRate;
   XRRScreenConfiguration *CurrInfo;
 
@@ -555,8 +686,6 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
 
   if (TargetRate == 23)
     TargetRate = 24;
-
-  Dpy = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
 
   if (Dpy)
   {
@@ -586,7 +715,6 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
     }
 
     XRRFreeScreenConfigInfo(CurrInfo);
-    XCloseDisplay(Dpy);
   }
 #endif
 }

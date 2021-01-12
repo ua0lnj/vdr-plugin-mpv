@@ -247,8 +247,9 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       cRemote::CallPlugin("mpv");
       break;
     case kStop:
-      Hide();
-      Player->QuitPlayer();
+//      Hide();
+//      Player->QuitPlayer();
+      cControl::Shutdown();
       return osEnd;
     break;
 
