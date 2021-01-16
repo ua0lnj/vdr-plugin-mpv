@@ -40,6 +40,7 @@ class cMpvPluginConfig
     int ShowMediaTitle;             // show title from media file instead of filename
     int ShowSubtitles;              // show subtitles
     int ExitAtEnd;                  // exit at the end
+    int SavePos;                    // save position on quit
 
     // plugin parameter variables
     string BrowserRoot;             // start dir for filebrowser

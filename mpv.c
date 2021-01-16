@@ -19,7 +19,7 @@
 #include "menu_options.h"
 #include "mpv_service.h"
 
-static const char *VERSION = "0.2.2"
+static const char *VERSION = "0.3.0"
 #ifdef GIT_REV
     "-GIT" GIT_REV
 #endif
@@ -43,7 +43,7 @@ class cMpvPlugin:public cPlugin
     virtual const char *Description(void) { return tr(DESCRIPTION); }
     virtual const char *CommandLineHelp(void) { return MpvPluginConfig->CommandLineHelp(); }
     virtual bool ProcessArgs(int argc, char *argv[]) { return MpvPluginConfig->ProcessArgs(argc, argv); }
-    virtual bool Initialize(void) { return true; }
+    virtual bool Initialize(void);
     virtual void MainThreadHook(void) {}
     virtual const char *MainMenuEntry(void) { return MpvPluginConfig->HideMainMenuEntry ? NULL : MpvPluginConfig->MainMenuEntry.c_str(); }
     virtual cOsdObject *MainMenuAction(void);
@@ -53,6 +53,22 @@ class cMpvPlugin:public cPlugin
     virtual const char **SVDRPHelpPages(void) { return NULL; }
     virtual cString SVDRPCommand(const char *Command, const char *Option, int &ReplayCode);
 };
+
+bool cMpvPlugin::Initialize(void)
+{
+  if (MpvPluginConfig->SavePos)
+  {
+    DIR *hDir;
+    string watch_later = PLGRESDIR;
+    watch_later += "/watch_later";
+    hDir = opendir(watch_later.c_str());
+    if (!hDir)
+      esyslog("[mpv] No directory %s, mpv can't resume play!\n", watch_later.c_str());
+    else 
+      closedir(hDir);
+  }
+  return true;
+}
 
 void cMpvPlugin::PlayFile(string Filename, bool Shuffle)
 {

@@ -69,8 +69,8 @@ void cMpvOsd::SetActive(bool On)
   {
     return;
   }
-  cOsd::SetActive(On);
-  
+  if (On) cOsd::SetActive(true);
+
   if (!On)
   {
     if (cMpvPlayer::PlayerIsRunning())
@@ -100,7 +100,7 @@ void cMpvOsd::WriteToMpv(int sw, int sh, int x, int y, int w, int h, const uint8
       pOsd[pos + 3] = argb[(w * sy + sx) * 4 + 3];
     }
   }
-  snprintf (cmd, sizeof(cmd), "overlay_add 1 0 0 @%d  0 \"bgra\" %d %d %d\n", fdOsd, sw, sh, sw*4);
+  snprintf (cmd, sizeof(cmd), "overlay-add 1 0 0 @%d  0 \"bgra\" %d %d %d\n", fdOsd, sw, sh, sw*4);
   Player->SendCommand (cmd);
 }
 

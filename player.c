@@ -372,12 +372,14 @@ void cMpvPlayer::PlayerStart()
   }
 
   int64_t osdlevel = 0;
+  string watch_later = PLGRESDIR;
+  watch_later += "/watch_later";
 
   check_error(mpv_set_option_string(hMpv, "vo", MpvPluginConfig->VideoOut.c_str()));
   check_error(mpv_set_option_string(hMpv, "hwdec", MpvPluginConfig->HwDec.c_str()));
   if (MpvPluginConfig->UseGlx)
   {
-      check_error(mpv_set_option_string(hMpv, "gpu-context", "x11"));
+    check_error(mpv_set_option_string(hMpv, "gpu-context", "x11"));
   }
   if (strcmp(MpvPluginConfig->Geometry.c_str(),""))
   {
@@ -391,16 +393,16 @@ void cMpvPlayer::PlayerStart()
   {
     if (!strcmp(MpvPluginConfig->HwDec.c_str(),"vaapi"))
     {
-        check_error(mpv_set_option_string(hMpv, "vf", "vavpp=deint=auto"));
+      check_error(mpv_set_option_string(hMpv, "vf", "vavpp=deint=auto"));
     }
     if (!strcmp(MpvPluginConfig->HwDec.c_str(),"vdpau"))
     {
-        check_error(mpv_set_option_string(hMpv, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
+      check_error(mpv_set_option_string(hMpv, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
     }
     if (!strcmp(MpvPluginConfig->HwDec.c_str(),"cuda"))
     {
-        check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
-        check_error(mpv_set_option_string(hMpv, "vd-lavc-o", "deint=adaptive"));
+      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
+      check_error(mpv_set_option_string(hMpv, "vd-lavc-o", "deint=adaptive"));
     }
   }
   check_error(mpv_set_option_string(hMpv, "audio-device", MpvPluginConfig->AudioOut.c_str()));
@@ -410,6 +412,8 @@ void cMpvPlayer::PlayerStart()
   check_error(mpv_set_option_string(hMpv, "sub-visibility", MpvPluginConfig->ShowSubtitles ? "yes" : "no"));
   check_error(mpv_set_option_string(hMpv, "sub-forced-only", "yes"));
   check_error(mpv_set_option_string(hMpv, "sub-auto", "all"));
+  check_error(mpv_set_option_string(hMpv, "watch-later-directory", watch_later.c_str()));
+  check_error(mpv_set_option_string(hMpv, "write-filename-in-watch-later-config", "yes"));
   check_error(mpv_set_option_string(hMpv, "ontop", "yes"));
   check_error(mpv_set_option_string(hMpv, "cursor-autohide", "always"));
   check_error(mpv_set_option_string(hMpv, "stop-playback-on-init-failure", "no"));
@@ -598,7 +602,7 @@ void cMpvPlayer::OsdClose()
 #ifdef DEBUG
   dsyslog("[mpv] %s\n", __FUNCTION__);
 #endif
-  SendCommand ("overlay_remove 1");
+  SendCommand ("overlay-remove 1");
 }
 
 void cMpvPlayer::Shutdown()
@@ -640,7 +644,7 @@ void cMpvPlayer::Shutdown()
     Dpy = NULL;
   }
 
-  mpv_terminate_destroy(hMpv);
+  mpv_destroy(hMpv);
   hMpv = NULL;
   cOsdProvider::Shutdown();
   // set back locale
@@ -805,7 +809,20 @@ void cMpvPlayer::TogglePause()
 
 void cMpvPlayer::QuitPlayer()
 {
-  SendCommand("quit\n");
+  if (MpvPluginConfig->SavePos)
+    SendCommand("quit-watch-later\n");
+  else
+    SendCommand("quit\n");
+}
+
+void cMpvPlayer::StopPlayer()
+{
+  SendCommand("stop\n");
+}
+
+void cMpvPlayer::SavePosPlayer()
+{
+  SendCommand("write-watch-later-config\n");
 }
 
 void cMpvPlayer::DiscNavUp()

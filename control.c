@@ -48,7 +48,6 @@ cMpvControl::~cMpvControl()
     cRemote::Put(key);
   }
   cStatus::MsgReplaying(this, NULL, NULL, false); // This has to be done before delete the player
-
   Player->Shutdown();
   delete Player;
   Player = NULL;
@@ -247,10 +246,18 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       cRemote::CallPlugin("mpv");
       break;
     case kStop:
-//      Hide();
-//      Player->QuitPlayer();
-      cControl::Shutdown();
-      return osEnd;
+      if (!MpvPluginConfig->ExitAtEnd)
+      {
+        Hide();
+        if (MpvPluginConfig->SavePos)
+          Player->SavePosPlayer();
+        Player->StopPlayer();
+      }
+      else
+      {
+        Hide();
+        Player->QuitPlayer();
+      }
     break;
 
     case kOk:

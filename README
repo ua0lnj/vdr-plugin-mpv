@@ -125,7 +125,17 @@ Plugin setup options
   If a file without chapters is played use the prev/next keys for playlist control
 
 - Show subtitles
-  Showing subtitles is enabled
+  Showing subtitles if enabled
+
+- Exit at the end
+  Exit from mpv plugin to vdr when play file ended or by pressing the STOP key
+  If disabled, use the main menu to exit the plugin
+
+- Save position on quit
+  Save the current playback position on quit to resume playback
+  If exit at the end is disabled, press STOP to save position
+  To resume playback use (create) the directory "RESDIR/plugins/mpv/watch_later",
+  see you vdr/Makefile and vdr/Make.config
 
 Remote control keys
 -------------------
@@ -145,7 +155,7 @@ Red:                    Time search functionality like used in VDR recordings
 Green:                  Seek 60 seconds backwards
 Yellow:                 Seek 60 seconds forward
 Blue:                   Show menu with current playback options
-Stop:                   Stop playback
+Stop:                   Stop playback, exit from plugin if exit at the end is enabled
 Back:                   Show the browser menu from where the last file was launched
 Ok:                     Display current playback status or close status display
                         if currently open. In playlist mode display current and

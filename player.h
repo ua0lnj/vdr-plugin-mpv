@@ -81,6 +81,8 @@ class cMpvPlayer:public cPlayer
     void SetChapter(int Chapter);
     void TogglePause();
     void QuitPlayer();
+    void StopPlayer();
+    void SavePosPlayer();
     void DiscNavUp();
     void DiscNavDown();
     void DiscNavLeft();

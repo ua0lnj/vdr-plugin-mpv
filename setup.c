@@ -21,6 +21,7 @@ cMpvPluginSetup::cMpvPluginSetup()
   SetupShowMediaTitle = MpvPluginConfig->ShowMediaTitle;
   SetupShowSubtitles = MpvPluginConfig->ShowSubtitles;
   SetupExitAtEnd = MpvPluginConfig->ExitAtEnd;
+  SetupSavePos = MpvPluginConfig->SavePos;
   Setup();
 }
 
@@ -54,6 +55,7 @@ void cMpvPluginSetup::Setup()
   Add(new cMenuEditBoolItem(tr("Show media title instead of filename"), &SetupShowMediaTitle));
   Add(new cMenuEditBoolItem(tr("Show subtitles"), &SetupShowSubtitles));
   Add(new cMenuEditBoolItem(tr("Exit at the end"), &SetupExitAtEnd));
+  Add(new cMenuEditBoolItem(tr("Save position on quit"), &SetupSavePos));
   SetCurrent(Get(current));
   Display();
 }
@@ -70,5 +72,6 @@ void cMpvPluginSetup::Store()
     SetupStore("ShowMediaTitle", MpvPluginConfig->ShowMediaTitle = SetupShowMediaTitle);
     SetupStore("ShowSubtitles", MpvPluginConfig->ShowSubtitles = SetupShowSubtitles);
     SetupStore("ExitAtEnd", MpvPluginConfig->ExitAtEnd = SetupExitAtEnd);
+    SetupStore("SavePos", MpvPluginConfig->SavePos = SetupSavePos);
 }
 
