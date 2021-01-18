@@ -84,8 +84,9 @@ Command line arguments
   the text displayed in VDR main menu (Default: MPV)
 
 -s
-  normally mpv tries to autoload LUA scripts, if this parameter is set no scripts are
-  loaded
+  normally mpv tries to autoload LUA scripts, if this parameter is set no scripts are loaded
+  The mpv config directory is a "RESDIR/plugins/mpv/", so scripts directory is a "RESDIR/plugins/mpv/scripts"
+  Look in vdr/Makefile and vdr/Make.config for which RESDIR location
 
 -w
    windowed mode, not fullscreen
