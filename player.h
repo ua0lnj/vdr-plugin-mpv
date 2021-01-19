@@ -110,7 +110,7 @@ class cMpvPlayer:public cPlayer
     string CurrentFile() { return PlayerFilename; }
     int CurrentPlaybackSpeed() { return PlayerSpeed; }
     int ChapterStartTime(unsigned int Chapter) { if (Chapter <= PlayerChapters.size()) return PlayerChapters[Chapter-1]; else return 0; }
-    string ChapterTitle(unsigned int Chapter) { if (Chapter <= ChapterTitles.size()) return ChapterTitles[Chapter-1]; else return ""; }
+    string ChapterTitle(unsigned int Chapter) { if (Chapter <= ChapterTitles.size() && Chapter) return ChapterTitles[Chapter-1]; else return ""; }
     string MediaTitle() { return mediaTitle; }
 };
 

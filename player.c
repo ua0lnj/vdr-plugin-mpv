@@ -411,6 +411,7 @@ void cMpvPlayer::PlayerStart()
   check_error(mpv_set_option_string(hMpv, "sub-visibility", MpvPluginConfig->ShowSubtitles ? "yes" : "no"));
   check_error(mpv_set_option_string(hMpv, "sub-forced-only", "yes"));
   check_error(mpv_set_option_string(hMpv, "sub-auto", "all"));
+  check_error(mpv_set_option_string(hMpv, "hr-seek", "yes"));
   check_error(mpv_set_option_string(hMpv, "write-filename-in-watch-later-config", "yes"));
   check_error(mpv_set_option_string(hMpv, "config-dir", config_dir.c_str()));
   check_error(mpv_set_option_string(hMpv, "config", "yes"));
