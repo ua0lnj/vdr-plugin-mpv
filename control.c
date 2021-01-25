@@ -58,7 +58,7 @@ cMpvControl::~cMpvControl()
 
 void cMpvControl::ShowProgress(int playlist)
 {
-  if (!Player->IsPaused() && LastPlayerCurrent == Player->CurrentPlayTime())
+  if (!Player->IsPaused() && LastPlayerCurrent == Player->CurrentPlayTime() && Player->TotalPlayTime() > 0)
     return;
   LastPlayerCurrent = Player->CurrentPlayTime();
 
@@ -183,7 +183,7 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       {
         Player->TogglePause();
       }
-    break;
+      break;
 
     case kDown:
       if (Player->DiscNavActive())
@@ -193,7 +193,7 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       }
     case kPause:
       Player->TogglePause();
-    break;
+      break;
 
     case kLeft:
       if (Player->DiscNavActive())
@@ -202,10 +202,17 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         break;
       }
     case kFastRew:
-      // reset to normal playback speed (if fastfwd is active currently) and then just go back 5 seconds since there is no fastrew in mpv
-      Player->SetSpeed(1);
-      Player->Seek(-5);
-    break;
+      if (Player->TotalPlayTime())
+      {
+        // reset to normal playback speed (if fastfwd is active currently) and then just go back 5 seconds since there is no fastrew in mpv
+        Player->SetSpeed(1);
+        Player->Seek(-5);
+      }
+      else //image have TotalPlayTime = 0
+      {
+        Player->PreviousPlaylistItem();
+      }
+      break;
     case kRight:
       if (Player->DiscNavActive())
       {
@@ -213,28 +220,35 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         break;
       }
     case kFastFwd:
-      if (Player->CurrentPlaybackSpeed() < 32)
+      if (Player->TotalPlayTime())
       {
-        Player->SetSpeed(Player->CurrentPlaybackSpeed() * 2);
+        if (Player->CurrentPlaybackSpeed() < 32)
+        {
+          Player->SetSpeed(Player->CurrentPlaybackSpeed() * 2);
+        }
       }
-    break;
+      else //image have TotalPlayTime = 0
+      {
+        Player->NextPlaylistItem();
+      }
+      break;
 
     case kRed:
       TimeSearch();
-    break;
+      break;
     case kGreen | k_Repeat:
     case kGreen:
       Player->Seek(-60);
-    break;
+      break;
     case kYellow | k_Repeat:
     case kYellow:
       Player->Seek(+60);
-    break;
+      break;
 
     case kBlue:
       MpvPluginConfig->ShowOptions = 1;
       cRemote::CallPlugin("mpv");
-    break;
+      break;
 
     case kBack:
       if (Player->DiscNavActive())
@@ -258,7 +272,7 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         Hide();
         Player->QuitPlayer();
       }
-    break;
+      break;
 
     case kOk:
       if (Player->DiscNavActive())
@@ -275,51 +289,52 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       else
       {
         if (Player->TotalListPos() <= 1) count++;
+        if (!Player->TotalPlayTime()) count += 2;
         count++;
         ShowProgress(count % 2);
       }
-    break;
+      break;
 
     case k5:
       Player->DiscNavMenu();
-    break;
+      break;
 
     case kNext:
       if (MpvPluginConfig->PlaylistOnNextKey || (MpvPluginConfig->PlaylistIfNoChapters && !Player->NumChapters()))
         Player->NextPlaylistItem();
       else
         Player->NextChapter();
-    break;
+      break;
 
     case kPrev:
       if (MpvPluginConfig->PlaylistOnNextKey || (MpvPluginConfig->PlaylistIfNoChapters && !Player->NumChapters()))
         Player->PreviousPlaylistItem();
       else
         Player->PreviousChapter();
-    break;
+      break;
 
     case k1 | k_Repeat:
     case k1:
       Player->Seek(-15);
-    break;
+      break;
     case k3 | k_Repeat:
     case k3:
       Player->Seek(+15);
-    break;
+      break;
 
     case k7:
       if (MpvPluginConfig->PlaylistOnNextKey)
         Player->PreviousChapter();
       else
         Player->PreviousPlaylistItem();
-    break;
+      break;
 
     case k9:
       if (MpvPluginConfig->PlaylistOnNextKey)
         Player->NextChapter();
       else
         Player->NextPlaylistItem();
-    break;
+      break;
 
     default:
       break;
