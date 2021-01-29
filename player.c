@@ -555,6 +555,31 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
 
     case MPV_OBSERVE_LIST_COUNT :
       ListTotal = (int)*(int64_t*)property->data;
+      mpv_node Node1;
+      if (mpv_get_property(hMpv, "playlist", MPV_FORMAT_NODE, &Node1) >= 0)
+      {
+        ListTitles.clear();
+        ListFilenames.clear();
+        if (Node1.format == MPV_FORMAT_NODE_ARRAY)
+        {
+          for (int i=0; i<Node1.u.list->num; i++)
+          {
+            ListFilenames.push_back (Node1.u.list->values[i].u.list->values[0].u.string);
+            for (int a=1;a<Node1.u.list->values[i].u.list->num;a++)
+            {
+              if(Node1.u.list->values[i].u.list->values[a].format == MPV_FORMAT_STRING)
+              {
+                ListTitles.push_back (Node1.u.list->values[i].u.list->values[a].u.string);
+                break;
+              }
+            }
+            // push filename if no title
+            std::string title = Node1.u.list->values[i].u.list->values[0].u.string;
+            if ((int)ListTitles.size() < i + 1) ListTitles.push_back (title.substr(title.find_last_of("/") + 1));
+//            dsyslog("%d %s ---- %s\n",i,ListFilename(i+1).c_str(),ListTitle(i+1).c_str());
+          }
+        }
+      }
     break;
   }
 }
@@ -626,6 +651,8 @@ void cMpvPlayer::Shutdown()
   MpvPluginConfig->TitleOverride = "";
   ChapterTitles.clear();
   PlayerChapters.clear();
+      ListTitles.clear();
+      ListFilenames.clear();
 
   if (ObserverThreadHandle)
     pthread_cancel(ObserverThreadHandle);
@@ -803,6 +830,11 @@ void cMpvPlayer::SetSubtitle(int Subtitle)
 void cMpvPlayer::SetChapter(int Chapter)
 {
   SendCommand("set chapter %d\n", Chapter-1);
+}
+
+void cMpvPlayer::PlayIndex(int Index)
+{
+  SendCommand("playlist-play-index %d\n", Index-1);
 }
 
 void cMpvPlayer::TogglePause()

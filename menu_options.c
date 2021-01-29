@@ -23,8 +23,8 @@ void cMpvMenuOptions::ShowOptions()
   if (player->NumChapters() && player->ChapterTitle(1) != "")
     Add(new cOsdItem(tr("Show chapters"), osUser1));
 
-  // TODO if we are currently on a playlist display playlist menu
-  
+  if (player->TotalListPos() > 1)
+    Add(new cOsdItem(tr("Show playlist"), osUser2));
 }
 
 eOSState cMpvMenuOptions::ProcessKey(eKeys Key)
@@ -36,7 +36,10 @@ eOSState cMpvMenuOptions::ProcessKey(eKeys Key)
     switch (Key)
     {
       case kOk:
+if(State == osUser1)
         AddSubMenu(new cMpvMenuChapters(player));
+if(State == osUser2)
+        AddSubMenu(new cMpvMenuPlaylist(player));
       break;
 
       default:
@@ -47,6 +50,7 @@ eOSState cMpvMenuOptions::ProcessKey(eKeys Key)
   return State;
 }
 
+//Chapters
 cMpvMenuChapters::cMpvMenuChapters(cMpvPlayer *Player)
 :cOsdMenu(tr("Chapters"))
 {
@@ -89,3 +93,45 @@ cMpvMenuChapterItem::cMpvMenuChapterItem(string Title, int Number)
   SetText(Title.c_str());
 }
 
+//Playlist
+cMpvMenuPlaylist::cMpvMenuPlaylist(cMpvPlayer *Player)
+:cOsdMenu(tr("Playlist"))
+{
+  player = Player;
+  for (int i=1; i<=player->TotalListPos(); i++)
+    AddItem(player->ListTitle(i), i);
+
+  Display();
+}
+
+eOSState cMpvMenuPlaylist::ProcessKey(eKeys Key)
+{
+  eOSState State = cOsdMenu::ProcessKey(Key);
+  if (State == osUnknown)
+  {
+    switch (Key)
+    {
+      case kOk:
+        cMpvMenuPlaylistItem *item = (cMpvMenuPlaylistItem *) Get(Current());
+        player->PlayIndex(item->Number());
+      return osEnd;
+    }
+  }
+
+  return State;
+}
+
+void cMpvMenuPlaylist::AddItem(string Title, int Number)
+{
+  bool Current = false;
+  if (player->ListTitle(player->CurrentListPos()) == Title)
+    Current = true;
+  Add(new cMpvMenuPlaylistItem(Title, Number), Current);
+}
+
+cMpvMenuPlaylistItem::cMpvMenuPlaylistItem(string Title, int Number)
+{
+  // TODO add number in front
+  number = Number;
+  SetText(Title.c_str());
+}

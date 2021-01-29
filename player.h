@@ -55,6 +55,8 @@ class cMpvPlayer:public cPlayer
     static volatile int running;
     int ListCurrent;                  // position in playlist
     int ListTotal;                    // number of positions in playlist
+    vector<string> ListFilenames;      // filenames in playlist
+    vector<string> ListTitles   ;      // titles in playlist
 
   public:
     cMpvPlayer(string Filename, bool Shuffle=false);
@@ -79,6 +81,7 @@ class cMpvPlayer:public cPlayer
     void SetAudio(int Audio);
     void SetSubtitle(int Subtitle);
     void SetChapter(int Chapter);
+    void PlayIndex(int Index);
     void TogglePause();
     void QuitPlayer();
     void StopPlayer();
@@ -112,6 +115,8 @@ class cMpvPlayer:public cPlayer
     int ChapterStartTime(unsigned int Chapter) { if (Chapter <= PlayerChapters.size()) return PlayerChapters[Chapter-1]; else return 0; }
     string ChapterTitle(unsigned int Chapter) { if (Chapter <= ChapterTitles.size() && Chapter) return ChapterTitles[Chapter-1]; else return ""; }
     string MediaTitle() { return mediaTitle; }
+    string ListTitle(unsigned int pos) {if (pos <= ListTitles.size() && pos) return ListTitles[pos-1]; else return ""; }
+    string ListFilename(unsigned int pos) {if (pos <= ListFilenames.size() && pos) return ListFilenames[pos-1]; else return ""; }
 };
 
 #endif
