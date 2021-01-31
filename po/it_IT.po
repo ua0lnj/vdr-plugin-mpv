@@ -1,0 +1,85 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: VDR \n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2021-01-28 17:59+0100\n"
+"PO-Revision-Date: \n"
+"Last-Translator: fiveten_59\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. TRANSLATORS: note the trailing blank!
+msgid "Jump: "
+msgstr "Salta:"
+
+msgid "Filebrowser"
+msgstr ""
+
+msgid "Disc"
+msgstr "Disco"
+
+msgid "PlayDir"
+msgstr ""
+
+msgid "Shuffle"
+msgstr "Riproduzione casuale"
+
+msgid "Options"
+msgstr "Opzioni"
+
+msgid "Show chapters"
+msgstr "Mostra capitoli"
+
+msgid "Chapters"
+msgstr "Capitoli"
+
+msgid "mpv player plugin"
+msgstr ""
+
+msgid "Hide main menu entry"
+msgstr "Nascondere menù principale"
+
+msgid "Video Deinterlace"
+msgstr ""
+
+msgid "Audio Passthrough"
+msgstr "Audio Passthrough"
+
+msgid "DTS-HD Passthrough"
+msgstr "DTS-HD Passthrough"
+
+msgid "Enable stereo downmix"
+msgstr "Abilitare downmix Stereo "
+
+msgid "Use prev/next keys for plalist control"
+msgstr "Utilizzare i tasti prev/next per il controllo della playlist"
+
+msgid "Control playlist if no chapters in file"
+msgstr "Controllo della playlist se non presenti i capitoli nel file"
+
+msgid "Show media title instead of filename"
+msgstr "Mostrare titolo al posto del nome del file"
+
+msgid "Show subtitles"
+msgstr "Mostra sottotitoli"
+
+msgid "Exit at the end"
+msgstr "Uscire al termine"
+
+#~ msgid "Browse"
+#~ msgstr "Durchsuchen"
+
+#~ msgid "Play optical disc"
+#~ msgstr "CD/DVD/Bluray abspielen"
+
+#~ msgid "Play audio CD"
+#~ msgstr "Audio CD"
+
+#~ msgid "Play video DVD"
+#~ msgstr "DVD"
+
+#~ msgid "Function not working yet, use 3 or 4"
+#~ msgstr "Funktion noch nicht eingebaut, bitte 3 oder 4 verwenden"
