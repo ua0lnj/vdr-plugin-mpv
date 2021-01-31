@@ -39,6 +39,14 @@ void cMpvFilebrowser::ShowDirectory(string Path)
   struct dirent *Entry;
 
   hDir = opendir(Path.c_str());
+
+  // current directory deleted?
+  if (!hDir && Path != rootDir)
+  {
+    currentDir = rootDir;
+    Path = rootDir;
+    hDir = opendir(Path.c_str());
+  }
   // do not crash if browser root directory absent
   if (!hDir)
   {
