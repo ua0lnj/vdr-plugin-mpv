@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: VDR \n"
@@ -11,21 +16,50 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. TRANSLATORS: note the trailing blank!
+msgid "Recording - can't rewind"
+msgstr "Registrazione in corso - rewind non disponibile"
+
+msgid "Recording - can't forwarding"
+msgstr "Registrazione in corso - forwarding non disponibile"
+
+msgid "Recording - can't seek"
+msgstr "Registrazione in corso - ricerca non disponibile"
+
+msgid "Recording - stop record first!"
+msgstr "Registrazione in corso - ferma la registrazione prima!"
+
+msgid "Recording Stoped"
+msgstr "Registrazione fermata"
+
+msgid "Recording - can't next"
+msgstr "Registrazione in corso - next non disponibile"
+
+msgid "Recording - can't prev"
+msgstr "Registrazione in corso - previous non disponibile"
+
+msgid "Not network stream, can't recording!"
+msgstr "Nessun stream network, non posso registrare!"
+
+msgid "Recording Started"
+msgstr "Registrazione avviata"
+
 msgid "Jump: "
 msgstr "Salta:"
 
 msgid "Filebrowser"
-msgstr ""
+msgstr "Filebrowser"
 
 msgid "Disc"
 msgstr "Disco"
 
 msgid "PlayDir"
-msgstr ""
+msgstr "Riproduzione continua"
 
 msgid "Shuffle"
 msgstr "Riproduzione casuale"
+
+msgid "Playlist cannot be created!"
+msgstr "La playlist non può essere creata!"
 
 msgid "Options"
 msgstr "Opzioni"
@@ -33,17 +67,26 @@ msgstr "Opzioni"
 msgid "Show chapters"
 msgstr "Mostra capitoli"
 
+msgid "Show playlist"
+msgstr "Mostra playlist"
+
 msgid "Chapters"
 msgstr "Capitoli"
 
+msgid "Playlist"
+msgstr "Playlist"
+
+msgid "Recording - can't play!"
+msgstr "Registrazione in corso - play non disponibile!"
+
 msgid "mpv player plugin"
-msgstr ""
+msgstr "mpv player plugin"
 
 msgid "Hide main menu entry"
 msgstr "Nascondere menù principale"
 
 msgid "Video Deinterlace"
-msgstr ""
+msgstr "Video Deinterlace"
 
 msgid "Audio Passthrough"
 msgstr "Audio Passthrough"
@@ -68,3 +111,6 @@ msgstr "Mostra sottotitoli"
 
 msgid "Exit at the end"
 msgstr "Uscire al termine"
+
+msgid "Save position on quit"
+msgstr "Salva la posizione all'uscita"

@@ -206,7 +206,7 @@ eOSState cMpvControl::ProcessKey(eKeys key)
     case kFastRew:
       if (Player->IsRecord())
       {
-        Skins.Message(mtError, tr("Recording - can't rewing"));
+        Skins.Message(mtError, tr("Recording - can't rewind"));
         break;
       }
       if (Player->TotalPlayTime())
