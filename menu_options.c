@@ -69,6 +69,11 @@ eOSState cMpvMenuChapters::ProcessKey(eKeys Key)
     switch (Key)
     {
       case kOk:
+        if (player->IsRecord())
+        {
+          Skins.Message(mtError, tr("Recording - can't play!"));
+          break;
+        }
         cMpvMenuChapterItem *item = (cMpvMenuChapterItem *) Get(Current());
         player->SetChapter(item->Number());
       return osEnd;

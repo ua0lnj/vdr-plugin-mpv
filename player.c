@@ -34,6 +34,7 @@ using std::vector;
 #define MPV_OBSERVE_MEDIA_TITLE 10
 #define MPV_OBSERVE_LIST_POS 11
 #define MPV_OBSERVE_LIST_COUNT 12
+#define MPV_OBSERVE_VIA_NET 13
 
 volatile int cMpvPlayer::running = 0;
 cMpvPlayer *cMpvPlayer::PlayerHandle = NULL;
@@ -136,6 +137,7 @@ void *cMpvPlayer::ObserverThread(void *handle)
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_MEDIA_TITLE, "media-title", MPV_FORMAT_STRING);
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_LIST_POS, "playlist-pos-1", MPV_FORMAT_INT64);
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_LIST_COUNT, "playlist-count", MPV_FORMAT_INT64);
+  mpv_observe_property(Player->hMpv, MPV_OBSERVE_VIA_NET, "demuxer-via-network", MPV_FORMAT_FLAG);
 
   while (Player->PlayerIsRunning())
   {
@@ -209,6 +211,7 @@ cMpvPlayer::cMpvPlayer(string Filename, bool Shuffle)
   PlayShuffle = Shuffle;
   running = 0;
   OriginalFps = -1;
+  PlayerRecord = 0;
 }
 
 cMpvPlayer::~cMpvPlayer()
@@ -545,6 +548,10 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
       PlayerSpeed = (int)*(double*)property->data;
     break;
 
+    case MPV_OBSERVE_VIA_NET :
+      isNetwork = (int)*(int64_t*)property->data;
+    break;
+
     case MPV_OBSERVE_MEDIA_TITLE :
       mediaTitle = *(char**)property->data;
     break;
@@ -580,6 +587,7 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
           }
         }
       }
+
     break;
   }
 }
@@ -800,6 +808,15 @@ void cMpvPlayer::PlayNew(string Filename)
   if (MpvPluginConfig->SavePos)
     SavePosPlayer();
   mpv_command(hMpv, cmd);
+}
+
+void cMpvPlayer::Record(string Filename)
+{
+  mpv_set_option_string(hMpv, "stream-record", Filename.c_str());
+  if (Filename == "")
+    PlayerRecord = 0;
+  else
+    PlayerRecord = 1;
 }
 
 void cMpvPlayer::Seek(int Seconds)

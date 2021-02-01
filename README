@@ -23,6 +23,8 @@ vdr-mpv is a fork of the vdr-play plugin from Johns. It uses libmpv for playing
 media (video, audio, picture) in VDR and also displays the VDR OSD (On Screen Display) during playback.
 You can play internet or network streams also. For this you need make mpv with lua script
 and youtube-dl (for youtube stream).
+You can record some network stream, and play it like normal vdr recordings. This is experimental mpv
+function, so some streams may not be redorded correctly. Recording is made to the vdr video directory.
 
 Requirements
 ------------
@@ -157,7 +159,8 @@ Fast forward:           Speed up playback speed up to 32 times
 Red:                    Time search functionality like used in VDR recordings
 Green:                  Seek 60 seconds backwards
 Yellow:                 Seek 60 seconds forward
-Blue:                   Show menu with current playback options
+Blue:                   Show menu with current playback options, when network stream play
+                        show streams list
 Stop:                   Stop playback, exit from plugin if exit at the end is enabled
 Back:                   Show the browser menu from where the last file was launched
 Ok:                     Display current playback status or close status display
@@ -174,6 +177,9 @@ Audio:                  Display a menu to switch between the available audio
                         tracks
 Subtitles:              Display a menu to switch between the available subtitle
                         tracks
+Record:                 Recording while play a network stream. Press STOP once to stop recording
+Channel Up              Next stream while play a network sream
+Channel Dn              Previous stream while play a network sream
 
 If a disc menu is active the following keys loose their default function described
 above and gain the following function

@@ -73,18 +73,3 @@ msgstr ""
 
 msgid "Exit at the end"
 msgstr ""
-
-#~ msgid "Browse"
-#~ msgstr "Durchsuchen"
-
-#~ msgid "Play optical disc"
-#~ msgstr "CD/DVD/Bluray abspielen"
-
-#~ msgid "Play audio CD"
-#~ msgstr "Audio CD"
-
-#~ msgid "Play video DVD"
-#~ msgstr "DVD"
-
-#~ msgid "Function not working yet, use 3 or 4"
-#~ msgstr "Funktion noch nicht eingebaut, bitte 3 oder 4 verwenden"

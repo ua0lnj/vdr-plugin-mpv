@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr-mpv 0.0.4\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2021-01-27 17:31+1000\n"
+"POT-Creation-Date: 2021-01-31 00:17+1000\n"
 "PO-Revision-Date: 2020-01-12 01:04+1000\n"
 "Last-Translator: ua0lnj\n"
 "Language-Team: ua0lnj\n"
@@ -15,6 +15,33 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+msgid "Recording - can't rewing"
+msgstr "Запись - нельзя назад"
+
+msgid "Recording - can't forwarding"
+msgstr "Запись - нельзя вперёд"
+
+msgid "Recording - can't seek"
+msgstr "Запись - перемотки нет"
+
+msgid "Recording - stop record first!"
+msgstr "Запись - сначала остановите!"
+
+msgid "Recording Stoped"
+msgstr "Запись остановлена"
+
+msgid "Recording - can't next"
+msgstr "Запись - нельзя след."
+
+msgid "Recording - can't prev"
+msgstr "Запись - нельзя пред."
+
+msgid "Not network stream, can't recording!"
+msgstr "Не сетевой поток, нет записи!"
+
+msgid "Recording Started"
+msgstr "Запись началась"
 
 #. TRANSLATORS: note the trailing blank!
 msgid "Jump: "
@@ -49,6 +76,9 @@ msgstr "Главы"
 
 msgid "Playlist"
 msgstr "Список"
+
+msgid "Recording - can't play!"
+msgstr "Запись - нельзя проиграть!"
 
 msgid "mpv player plugin"
 msgstr "MPV плагин"

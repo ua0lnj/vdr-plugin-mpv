@@ -19,7 +19,7 @@
 #include "menu_options.h"
 #include "mpv_service.h"
 
-static const char *VERSION = "0.4.0"
+static const char *VERSION = "0.5.0"
 #ifdef GIT_REV
     "-GIT" GIT_REV
 #endif
@@ -99,7 +99,10 @@ cOsdObject *cMpvPlugin::MainMenuAction(void)
     if (!MpvPluginConfig->ShowOptions)
       return new cMpvFilebrowser(MpvPluginConfig->BrowserRoot, MpvPluginConfig->DiscDevice);
     else
-      return new cMpvMenuOptions(cMpvPlayer::Player());
+      if (cMpvPlayer::Player()->NetworkPlay())
+        return new cMpvMenuPlaylist(cMpvPlayer::Player());
+      else
+        return new cMpvMenuOptions(cMpvPlayer::Player());
   }
   return new cMpvFilebrowser(MpvPluginConfig->BrowserRoot, MpvPluginConfig->DiscDevice);
 }

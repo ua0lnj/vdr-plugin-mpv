@@ -9,6 +9,7 @@
 #include "control.h"
 #include "config.h"
 #include <vdr/interface.h>
+#include <vdr/videodir.h>
 
 cMpvControl::cMpvControl(string Filename, bool Shuffle)
 :cControl(Player = new cMpvPlayer(Filename.c_str(), Shuffle))
@@ -58,7 +59,7 @@ cMpvControl::~cMpvControl()
 
 void cMpvControl::ShowProgress(int playlist)
 {
-  if (!Player->IsPaused() && LastPlayerCurrent == Player->CurrentPlayTime() && Player->TotalPlayTime() > 0)
+  if (!Player->IsPaused() && LastPlayerCurrent == Player->CurrentPlayTime() && Player->TotalPlayTime() > 0 && !Player->NetworkPlay())
     return;
   LastPlayerCurrent = Player->CurrentPlayTime();
 
@@ -97,6 +98,7 @@ void cMpvControl::ShowProgress(int playlist)
     TitleDisplay += buffer;
     DisplayReplay->SetMarks(Marks());
   }
+  if (Player->IsRecord()) TitleDisplay = "REC " + TitleDisplay;
 
   DisplayReplay->SetTitle(TitleDisplay.c_str());
 
@@ -202,6 +204,11 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         break;
       }
     case kFastRew:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't rewing"));
+        break;
+      }
       if (Player->TotalPlayTime())
       {
         // reset to normal playback speed (if fastfwd is active currently) and then just go back 5 seconds since there is no fastrew in mpv
@@ -220,6 +227,11 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         break;
       }
     case kFastFwd:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't forwarding"));
+        break;
+      }
       if (Player->TotalPlayTime())
       {
         if (Player->CurrentPlaybackSpeed() < 32)
@@ -238,19 +250,35 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       break;
     case kGreen | k_Repeat:
     case kGreen:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't seek"));
+        break;
+      }
       Player->Seek(-60);
       break;
     case kYellow | k_Repeat:
     case kYellow:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't seek"));
+        break;
+      }
       Player->Seek(+60);
       break;
 
     case kBlue:
+      infoVisible = false;
       MpvPluginConfig->ShowOptions = 1;
       cRemote::CallPlugin("mpv");
       break;
 
     case kBack:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - stop record first!"));
+        break;
+      }
       if (Player->DiscNavActive())
       {
         Player->DiscNavPrev();
@@ -260,17 +288,26 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       cRemote::CallPlugin("mpv");
       break;
     case kStop:
-      if (!MpvPluginConfig->ExitAtEnd)
+      if (Player->IsRecord())
       {
-        Hide();
-        if (MpvPluginConfig->SavePos)
-          Player->SavePosPlayer();
-        Player->StopPlayer();
+        Skins.Message(mtInfo, tr("Recording Stoped"));
+        Player->Record("");
+        cRecordings::Update(true);
       }
       else
       {
-        Hide();
-        Player->QuitPlayer();
+        if (!MpvPluginConfig->ExitAtEnd)
+        {
+          Hide();
+          if (MpvPluginConfig->SavePos)
+            Player->SavePosPlayer();
+          Player->StopPlayer();
+        }
+        else
+        {
+          Hide();
+          Player->QuitPlayer();
+        }
       }
       break;
 
@@ -300,6 +337,11 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       break;
 
     case kNext:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't next"));
+        break;
+      }
       if (MpvPluginConfig->PlaylistOnNextKey || (MpvPluginConfig->PlaylistIfNoChapters && !Player->NumChapters()))
         Player->NextPlaylistItem();
       else
@@ -307,6 +349,11 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       break;
 
     case kPrev:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't prev"));
+        break;
+      }
       if (MpvPluginConfig->PlaylistOnNextKey || (MpvPluginConfig->PlaylistIfNoChapters && !Player->NumChapters()))
         Player->PreviousPlaylistItem();
       else
@@ -315,14 +362,29 @@ eOSState cMpvControl::ProcessKey(eKeys key)
 
     case k1 | k_Repeat:
     case k1:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't seek"));
+        break;
+      }
       Player->Seek(-15);
       break;
     case k3 | k_Repeat:
     case k3:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't seek"));
+        break;
+      }
       Player->Seek(+15);
       break;
 
     case k7:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't prev"));
+        break;
+      }
       if (MpvPluginConfig->PlaylistOnNextKey)
         Player->PreviousChapter();
       else
@@ -330,10 +392,75 @@ eOSState cMpvControl::ProcessKey(eKeys key)
       break;
 
     case k9:
+      if (Player->IsRecord())
+      {
+        Skins.Message(mtError, tr("Recording - can't next"));
+        break;
+      }
       if (MpvPluginConfig->PlaylistOnNextKey)
         Player->NextChapter();
       else
         Player->NextPlaylistItem();
+      break;
+
+    case kRecord:
+      if (!Player->NetworkPlay())
+      {
+        Skins.Message(mtError, tr("Not network stream, can't recording!"));
+      }
+      else
+      {
+        if (!Player->IsRecord())
+        {
+          time_t timeNow;
+          char buffer [20];
+          struct tm * timeinfo;
+          time (&timeNow);
+          timeinfo = localtime(&timeNow);
+          strftime (buffer,20,"%Y-%m-%d.%H.%M.%S",timeinfo);
+          string dir = cVideoDirectory::Name();
+          dir += "/" + Player->ListTitle(Player->CurrentListPos());
+          mkdir(dir.c_str(),0777);
+          dir += "/";
+          dir += buffer;
+          dir += "-0.rec";
+          mkdir(dir.c_str(),0777);
+          string rec = dir+"/"+"00001.ts";
+#ifdef DEBUG
+          esyslog("[mpv] recording %s\n",rec.c_str());
+#endif
+          Player->Record(rec.c_str());
+          Skins.Message(mtInfo, tr("Recording Started"));
+        }
+      }
+      break;
+
+    case kChanUp:
+      if (Player->NetworkPlay())
+      {
+        if (Player->IsRecord())
+        {
+          Skins.Message(mtError, tr("Recording - can't next"));
+          break;
+        }
+        Player->NextPlaylistItem();
+        ShowProgress(0);
+        count = 2;
+      }
+      break;
+
+    case kChanDn:
+      if (Player->NetworkPlay())
+      {
+        if (Player->IsRecord())
+        {
+          Skins.Message(mtError, tr("Recording - can't prev"));
+          break;
+        }
+        Player->PreviousPlaylistItem();
+        ShowProgress(0);
+        count = 2;
+      }
       break;
 
     default:
