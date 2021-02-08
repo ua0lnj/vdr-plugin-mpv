@@ -69,11 +69,6 @@ eOSState cMpvMenuChapters::ProcessKey(eKeys Key)
     switch (Key)
     {
       case kOk:
-        if (player->IsRecord())
-        {
-          Skins.Message(mtError, tr("Recording - can't play!"));
-          break;
-        }
         cMpvMenuChapterItem *item = (cMpvMenuChapterItem *) Get(Current());
         player->SetChapter(item->Number());
       return osEnd;
@@ -93,8 +88,8 @@ void cMpvMenuChapters::AddItem(string Title, int Number)
 
 cMpvMenuChapterItem::cMpvMenuChapterItem(string Title, int Number)
 {
-  // TODO add number in front
   number = Number;
+  Title = std::to_string(number) + "  " + Title;
   SetText(Title.c_str());
 }
 
@@ -117,6 +112,11 @@ eOSState cMpvMenuPlaylist::ProcessKey(eKeys Key)
     switch (Key)
     {
       case kOk:
+        if (player->IsRecord())
+        {
+          Skins.Message(mtError, tr("Recording - can't play!"));
+          break;
+        }
         cMpvMenuPlaylistItem *item = (cMpvMenuPlaylistItem *) Get(Current());
         player->PlayIndex(item->Number());
       return osEnd;
@@ -136,7 +136,7 @@ void cMpvMenuPlaylist::AddItem(string Title, int Number)
 
 cMpvMenuPlaylistItem::cMpvMenuPlaylistItem(string Title, int Number)
 {
-  // TODO add number in front
   number = Number;
+  Title = std::to_string(number) + "  " + Title;
   SetText(Title.c_str());
 }
