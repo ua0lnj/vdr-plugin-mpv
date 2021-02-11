@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: VDR \n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2021-01-28 17:59+0100\n"
+"POT-Creation-Date: 2021-02-11 22:53+1000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: fiveten_59\n"
 "Language-Team: fiveten_59\n"
@@ -43,6 +43,7 @@ msgstr "Nessun stream network, non posso registrare!"
 msgid "Recording Started"
 msgstr "Registrazione avviata"
 
+#. TRANSLATORS: note the trailing blank!
 msgid "Jump: "
 msgstr "Salta:"
 
@@ -97,7 +98,10 @@ msgstr "DTS-HD Passthrough"
 msgid "Enable stereo downmix"
 msgstr "Abilitare downmix Stereo "
 
-msgid "Use prev/next keys for plalist control"
+msgid "Software volume control"
+msgstr ""
+
+msgid "Use prev/next keys for playlist control"
 msgstr "Utilizzare i tasti prev/next per il controllo della playlist"
 
 msgid "Control playlist if no chapters in file"

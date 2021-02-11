@@ -934,5 +934,8 @@ void cMpvPlayer::PreviousPlaylistItem()
 
 void cMpvPlayer::SetVolume(int Volume)
 {
-  SendCommand("set volume %d\n", Volume);
+  if (MpvPluginConfig->SoftVol)
+    SendCommand("set volume %d\n", Volume);
+  else
+    mpv_set_property_string(hMpv, "ao-volume", std::to_string(Volume).c_str());
 }

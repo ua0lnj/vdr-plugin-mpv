@@ -41,6 +41,7 @@ class cMpvPluginConfig
     int ShowSubtitles;              // show subtitles
     int ExitAtEnd;                  // exit at the end
     int SavePos;                    // save position on quit
+    int SoftVol;                    // software volume
 
     // plugin parameter variables
     string BrowserRoot;             // start dir for filebrowser

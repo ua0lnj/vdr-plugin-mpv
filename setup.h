@@ -28,6 +28,7 @@ class cMpvPluginSetup:public cMenuSetupPage
     int SetupShowSubtitles;
     int SetupExitAtEnd;
     int SetupSavePos;
+    int SetupSoftVol;
 
   public:
     cMpvPluginSetup();

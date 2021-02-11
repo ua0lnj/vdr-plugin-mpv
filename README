@@ -24,7 +24,7 @@ media (video, audio, picture) in VDR and also displays the VDR OSD (On Screen Di
 You can play internet or network streams also. For this you need make mpv with lua script
 and youtube-dl (for youtube stream).
 You can record some network stream, and play it like normal vdr recordings. This is experimental mpv
-function, so some streams may not be redorded correctly. Recording is made to the vdr video directory.
+function, so some streams may not be recorded correctly. Recording is made to the vdr video directory.
 
 Requirements
 ------------

@@ -22,16 +22,19 @@ cMpvPluginSetup::cMpvPluginSetup()
   SetupShowSubtitles = MpvPluginConfig->ShowSubtitles;
   SetupExitAtEnd = MpvPluginConfig->ExitAtEnd;
   SetupSavePos = MpvPluginConfig->SavePos;
+  SetupSoftVol = MpvPluginConfig->SoftVol;
   Setup();
 }
 
 eOSState cMpvPluginSetup::ProcessKey(eKeys key)
 {
   int oldUsePassthrough = SetupUsePassthrough;
+  int oldSoftVol = SetupSoftVol;
   int oldPlaylistOnNextKey = SetupPlaylistOnNextKey;
   eOSState state = cMenuSetupPage::ProcessKey(key);
 
-  if (key != kNone && (SetupUsePassthrough != oldUsePassthrough || SetupPlaylistOnNextKey != oldPlaylistOnNextKey))
+  if (key != kNone && (SetupUsePassthrough != oldUsePassthrough || SetupPlaylistOnNextKey != oldPlaylistOnNextKey ||
+    SetupSoftVol != oldSoftVol))
     Setup();
 
   return state;
@@ -49,6 +52,7 @@ void cMpvPluginSetup::Setup()
     Add(new cMenuEditBoolItem(tr("DTS-HD Passthrough"), &SetupUseDtsHdPassthrough));
   else
     Add(new cMenuEditBoolItem(tr("Enable stereo downmix"), &SetupStereoDownmix));
+  Add(new cMenuEditBoolItem(tr("Software volume control"), &SetupSoftVol));
   Add(new cMenuEditBoolItem(tr("Use prev/next keys for playlist control"), &SetupPlaylistOnNextKey));
   if (!SetupPlaylistOnNextKey)
     Add(new cMenuEditBoolItem(tr("Control playlist if no chapters in file"), &SetupPlaylistIfNoChapters));
@@ -73,5 +77,6 @@ void cMpvPluginSetup::Store()
     SetupStore("ShowSubtitles", MpvPluginConfig->ShowSubtitles = SetupShowSubtitles);
     SetupStore("ExitAtEnd", MpvPluginConfig->ExitAtEnd = SetupExitAtEnd);
     SetupStore("SavePos", MpvPluginConfig->SavePos = SetupSavePos);
+    SetupStore("SoftVol", MpvPluginConfig->SoftVol = SetupSoftVol);
 }
 

@@ -26,6 +26,7 @@ cMpvPluginConfig::cMpvPluginConfig()
   ShowSubtitles = 0;
   ExitAtEnd = 1;
   SavePos = 0;
+  SoftVol = 0;
 
   BrowserRoot = "/";
   RefreshRate = 0;
@@ -182,6 +183,8 @@ bool cMpvPluginConfig::SetupParse(const char *name, const char *value)
     ExitAtEnd = atoi(value);
   else if (!strcasecmp(name, "SavePos"))
     SavePos = atoi(value);
+  else if (!strcasecmp(name, "SoftVol"))
+    SoftVol = atoi(value);
   else
     return false;
   return true;
