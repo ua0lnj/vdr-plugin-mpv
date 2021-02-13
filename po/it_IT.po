@@ -99,7 +99,7 @@ msgid "Enable stereo downmix"
 msgstr "Abilitare downmix Stereo "
 
 msgid "Software volume control"
-msgstr ""
+msgstr "Controllo volume via software"
 
 msgid "Use prev/next keys for playlist control"
 msgstr "Utilizzare i tasti prev/next per il controllo della playlist"
