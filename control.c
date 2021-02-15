@@ -299,7 +299,7 @@ eOSState cMpvControl::ProcessKey(eKeys key)
         if (!MpvPluginConfig->ExitAtEnd)
         {
           Hide();
-          if (MpvPluginConfig->SavePos)
+          if (MpvPluginConfig->SavePos && !Player->NetworkPlay())
             Player->SavePosPlayer();
           Player->StopPlayer();
         }
