@@ -12,15 +12,6 @@ PLUGIN = mpv
 ### Configuration (edit this for your needs)
 #CONFIG := -DDEBUG			# uncomment to build DEBUG
 
-# WARNING !!!
-# If you want use keyboard instead RCU, you MUST compile mpv plugin after softhd* plugin,
-# or for the libvdr-softhd* library to be present on the system.
-# You may compile mpv plugin in the second pass, or create symbolic link "zmpv" to vdr-plugin-mpv directory.
-
-#USESOFTHDDEVICE = 1
-#USESOFTHDCUVID = 1
-#USESOFTHDVAAPI = 1
-#USEVAAPIDEVICE = 1
 # support refresh rate switching
 XRANDR ?= $(shell pkg-config --exists xrandr && echo 1)
 LIBMPV ?= $(shell pkg-config --exists mpv && echo 1)
@@ -85,69 +76,6 @@ PACKAGE = vdr-$(ARCHIVE)
 
 SOFILE = libvdr-$(PLUGIN).so
 
-### Extended softhd* libs for keyboard control
-
-# softhddevice
-ifeq ($(USESOFTHDDEVICE),1)
-SHDLIB ?= $(shell pkg-config --exists libvdr-softhddevice && echo 1)
-ifeq ($(SHDLIB),1)
-LIBS += $(shell pkg-config --libs libvdr-softhddevice)
-CONFIG += -DUSE_KEYPRESS
-endif
-ifneq ($(SHDLIB),0)
-SHDLIB = $(DESTDIR)$(LIBDIR)/libvdr-softhddevice.so.$(APIVERSION)
-ifeq ($(shell test -f $(SHDLIB); echo $$?),0)
-LIBS += $(SHDLIB)
-CONFIG += -DUSE_KEYPRESS
-endif
-endif
-endif
-# softhdcuvid
-ifeq ($(USESOFTHDCUVID),1)
-SHCLIB ?= $(shell pkg-config --exists libvdr-softhdcuvid && echo 1)
-ifeq ($(SHCLIB),1)
-LIBS += $(shell pkg-config --libs libvdr-softhdcuvid)
-CONFIG += -DUSE_KEYPRESS
-endif
-ifneq ($(SHCLIB),0)
-SHCLIB = $(DESTDIR)$(LIBDIR)/libvdr-softhdcuvid.so.$(APIVERSION)
-ifeq ($(shell test -f $(SHCLIB); echo $$?),0)
-LIBS += $(SHCLIB)
-CONFIG += -DUSE_KEYPRESS
-endif
-endif
-endif
-# softhdvaapi
-ifeq ($(USESOFTHDVAAPI),1)
-SHVLIB ?= $(shell pkg-config --exists libvdr-softhdvaapi && echo 1)
-ifeq ($(SHVLIB),1)
-LIBS += $(shell pkg-config --libs libvdr-softhdvaapi)
-CONFIG += -DUSE_KEYPRESS
-endif
-ifneq ($(SHVLIB),0)
-SHVLIB = $(DESTDIR)$(LIBDIR)/libvdr-softhdvaapi.so.$(APIVERSION)
-ifeq ($(shell test -f $(SHVLIB); echo $$?),0)
-LIBS += $(SHVLIB)
-CONFIG += -DUSE_KEYPRESS
-endif
-endif
-endif
-# vaapidevice
-ifeq ($(USEVAAPIDEVICE),1)
-VDLIB ?= $(shell pkg-config --exists libvdr-vaapidevice && echo 1)
-ifeq ($(VDLIB),1)
-LIBS += $(shell pkg-config --libs libvdr-vaapidevice)
-CONFIG += -DUSE_KEYPRESS
-endif
-ifneq ($(VDLIB),0)
-VDLIB = $(DESTDIR)$(LIBDIR)/libvdr-vaapidevice.so.$(APIVERSION)
-ifeq ($(shell test -f $(VDLIB); echo $$?),0)
-LIBS += $(VDLIB)
-CONFIG += -DUSE_KEYPRESS
-endif
-endif
-endif
-
 ### Includes and Defines (add further entries here):
 
 INCLUDES +=
@@ -158,13 +86,17 @@ DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"' -D_GNU_SOURCE $(CONFIG) \
 DEFINES += -DPLGRESDIR='"$(PLGRESDIR)"'
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o config.o control.o filebrowser.o menu_options.o osd.o player.o setup.o status.o
+OBJS = $(PLUGIN).o config.o control.o filebrowser.o menu_options.o osd.o remote.o player.o setup.o status.o
 
 ### The main target:
 
 all: $(SOFILE) i18n
 
 ### Implicit rules:
+
+%.o: %.cpp
+	@echo CXX $@
+	$(Q)$(CXX) $(CXXFLAGS) -c $(DEFINES) $(INCLUDES) -o $@ $<
 
 %.o: %.c
 	@echo CC $@
@@ -175,7 +107,7 @@ all: $(SOFILE) i18n
 MAKEDEP = $(CXX) -MM -MG
 DEPFILE = .dependencies
 $(DEPFILE): Makefile
-	@$(MAKEDEP) $(CXXFLAGS) $(DEFINES) $(INCLUDES) $(OBJS:%.o=%.c) > $@
+	@$(MAKEDEP) $(CXXFLAGS) $(DEFINES) $(INCLUDES) $(wildcard $(OBJS:%.o=%.c)) > $@
 
 -include $(DEPFILE)
 

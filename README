@@ -41,11 +41,6 @@ Installation
 - using "make install" the plugin will be compiled and installed on your system
 - adjust the command line arguments to fit your needs
 
-- WARNING !!!
-  If you want use keyboard instead RCU, you MUST compile mpv plugin after softhd* plugin,
-  or for the libvdr-softhd* library to be present on the system prior to compilation.
-  You may compile mpv plugin in the second pass, or create symbolic link "zmpv" to vdr-plugin-mpv directory.
-
 Command line arguments
 ----------------------
 

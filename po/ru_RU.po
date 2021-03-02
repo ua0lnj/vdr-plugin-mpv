@@ -90,7 +90,7 @@ msgid "Video Deinterlace"
 msgstr "Убрать черезстрочность"
 
 msgid "Audio Passthrough"
-msgstr "Передать звук"
+msgstr "Передать звук напрямую"
 
 msgid "DTS-HD Passthrough"
 msgstr "Передать DTS-HD"
