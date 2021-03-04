@@ -749,6 +749,7 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
   if (!MpvPluginConfig->RefreshRate)
     return;
 
+  Display *Dpl;
   int RefreshRate;
   XRRScreenConfiguration *CurrInfo;
 
@@ -758,7 +759,9 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
   if (TargetRate == 23)
     TargetRate = 24;
 
-  if (Dpy)
+  Dpl = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
+
+  if (Dpl)
   {
     short *Rates;
     int NumberOfRates;
@@ -766,7 +769,7 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
     Rotation CurrentRotation;
     int RateFound = 0;
 
-    CurrInfo = XRRGetScreenInfo(Dpy, DefaultRootWindow(Dpy));
+    CurrInfo = XRRGetScreenInfo(Dpl, DefaultRootWindow(Dpl));
     RefreshRate = XRRConfigCurrentRate(CurrInfo);
     CurrentSizeId =
     XRRConfigCurrentConfiguration(CurrInfo, &CurrentRotation);
@@ -781,11 +784,12 @@ void cMpvPlayer::ChangeFrameRate(int TargetRate)
     if ((RefreshRate != TargetRate) && (RateFound == 1))
     {
       OriginalFps = RefreshRate;
-      XRRSetScreenConfigAndRate(Dpy, CurrInfo, DefaultRootWindow(Dpy),
+      XRRSetScreenConfigAndRate(Dpl, CurrInfo, DefaultRootWindow(Dpl),
       CurrentSizeId, CurrentRotation, TargetRate, CurrentTime);
     }
 
     XRRFreeScreenConfigInfo(CurrInfo);
+    XCloseDisplay(Dpl);
   }
 #endif
 }
