@@ -49,6 +49,7 @@ xcb_connection_t *Connect = NULL;
 xcb_window_t VideoWindow = 0;
 xcb_pixmap_t pixmap = XCB_NONE;
 xcb_cursor_t cursor = XCB_NONE;
+extern volatile char ShownMenu;
 
 #ifdef __cplusplus
 extern "C"
@@ -103,10 +104,16 @@ void *cMpvPlayer::XEventThread(void *handle)
 		FeedKeyPress("XKeySym", "Menu", 0, 0, NULL);
 	    }
 	    if (event.xbutton.button == 4) {
-		FeedKeyPress("XKeySym", "Volume+", 0, 0, NULL);
+		if (ShownMenu)
+		    FeedKeyPress("XKeySym", "Up", 0, 0, NULL);
+		else
+		    FeedKeyPress("XKeySym", "Volume+", 0, 0, NULL);
 	    }
 	    if (event.xbutton.button == 5) {
-		FeedKeyPress("XKeySym", "Volume-", 0, 0, NULL);
+		if (ShownMenu)
+		    FeedKeyPress("XKeySym", "Down", 0, 0, NULL);
+		else
+		    FeedKeyPress("XKeySym", "Volume-", 0, 0, NULL);
 	    }
 	    break;
 	  case ButtonRelease:

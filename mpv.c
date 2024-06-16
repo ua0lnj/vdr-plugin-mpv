@@ -24,6 +24,7 @@ static const char *VERSION = "1.7.1"
     "-GIT" GIT_REV
 #endif
 ;
+volatile char ShownMenu = 0;
 
 using std::string;
 
@@ -45,7 +46,7 @@ class cMpvPlugin:public cPlugin
     virtual bool ProcessArgs(int argc, char *argv[]) { return MpvPluginConfig->ProcessArgs(argc, argv); }
     virtual bool Initialize(void);
     virtual void MainThreadHook(void) {}
-    virtual const char *MainMenuEntry(void) { return MpvPluginConfig->HideMainMenuEntry ? NULL : MpvPluginConfig->MainMenuEntry.c_str(); }
+    virtual const char *MainMenuEntry(void);
     virtual cOsdObject *MainMenuAction(void);
     virtual cMenuSetupPage *SetupMenu(void) { return new cMpvPluginSetup; }
     virtual bool SetupParse(const char *Name, const char *Value) { return MpvPluginConfig->SetupParse(Name, Value); }
@@ -90,6 +91,14 @@ cMpvPlugin::cMpvPlugin(void)
 cMpvPlugin::~cMpvPlugin(void)
 {
   delete MpvPluginConfig;
+}
+
+const char *cMpvPlugin::MainMenuEntry(void)
+{
+  if (cMpvPlayer::PlayerIsRunning())
+    ShownMenu = 1;
+
+  return MpvPluginConfig->HideMainMenuEntry ? NULL : MpvPluginConfig->MainMenuEntry.c_str();
 }
 
 cOsdObject *cMpvPlugin::MainMenuAction(void)

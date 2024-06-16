@@ -10,6 +10,8 @@
 
 #include "osd.h"
 
+extern volatile char ShownMenu;
+
 cMpvOsdProvider::cMpvOsdProvider(cMpvPlayer *player)
 {
   Player = player;
@@ -58,6 +60,7 @@ cMpvOsd::~cMpvOsd()
   munmap(pOsd, sizeof(pOsd));
   close(fdOsd);
   remove("/tmp/vdr_mpv_osd");
+  ShownMenu = 0;
 }
 
 void cMpvOsd::SetActive(bool On)
