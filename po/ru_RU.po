@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr-mpv 0.0.4\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2021-02-11 22:53+1000\n"
+"POT-Creation-Date: 2024-01-28 01:08+1000\n"
 "PO-Revision-Date: 2020-01-12 01:04+1000\n"
 "Last-Translator: ua0lnj\n"
 "Language-Team: ua0lnj\n"
@@ -56,11 +56,29 @@ msgstr "Диск"
 msgid "PlayDir"
 msgstr "Проиграть"
 
+msgid "Remove"
+msgstr "Удалить"
+
 msgid "Shuffle"
 msgstr "Смешать"
 
 msgid "Playlist cannot be created!"
 msgstr "Нельзя создать плейлист!"
+
+msgid "Not empty directory, can't remove!"
+msgstr "Не пустая папка, нельзя удалить!"
+
+msgid "Remove empty directory?"
+msgstr "Удалить пустую папку?"
+
+msgid "Unable to remove directory!"
+msgstr "Не могу удалить папку!"
+
+msgid "Remove file?"
+msgstr "Удалить файл?"
+
+msgid "Unable to remove file!"
+msgstr "Не могу удалить файл!"
 
 msgid "Options"
 msgstr "Опции"
@@ -82,6 +100,9 @@ msgstr "Запись - нельзя проиграть!"
 
 msgid "mpv player plugin"
 msgstr "MPV плагин"
+
+msgid "Black screen"
+msgstr "Чёрный экран"
 
 msgid "Hide main menu entry"
 msgstr "Скрыть основное меню"
@@ -115,6 +136,9 @@ msgstr "Показ субтитров"
 
 msgid "Exit at the end"
 msgstr "Выход в конце"
+
+msgid "Show after stop"
+msgstr "Показать после остановки"
 
 msgid "Save position on quit"
 msgstr "Запомнить позицию"

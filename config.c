@@ -25,6 +25,7 @@ cMpvPluginConfig::cMpvPluginConfig()
   ShowMediaTitle = 0;
   ShowSubtitles = 0;
   ExitAtEnd = 1;
+  ShowAfterStop = 0;
   SavePos = 0;
   SoftVol = 0;
 
@@ -32,7 +33,7 @@ cMpvPluginConfig::cMpvPluginConfig()
   RefreshRate = 0;
   VideoOut = "vdpau";
   HwDec = "vdpau";
-  UseGlx = 0;
+  GpuCtx = "auto";
   AudioOut = "alsa:device=default";
   DiscDevice = "/dev/dvd";
   Languages = "deu,de,ger,eng,en";
@@ -44,6 +45,7 @@ cMpvPluginConfig::cMpvPluginConfig()
   Geometry = "";
   Windowed = 0;
   ShowOptions = 0;
+  DRMdev = "";
 }
 
 vector<string> cMpvPluginConfig::ExplodeString(string Input)
@@ -72,7 +74,7 @@ int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
 
   for (;;)
   {
-    switch (getopt(argc, argv, "a:v:h:d:b:l:x:rm:swg:"))
+    switch (getopt(argc, argv, "a:v:h:c:d:b:l:x:rm:swg:e:"))
     {
       case 'a': // audio out
         AudioOut = optarg;
@@ -82,6 +84,9 @@ int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
       continue;
       case 'h': // hwdec-codecs
         HwDec = optarg;
+      continue;
+      case 'c': // gpu-context
+        GpuCtx = optarg;
       continue;
       case 'd': // dvd-device
         DiscDevice = optarg;
@@ -107,9 +112,11 @@ int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
       case 'w':
         Windowed = 1;
       continue;
-      case 'g': // glx with x11 and geometry
+      case 'g':
         Geometry = optarg;
-        UseGlx = 1;
+      continue;
+      case 'e':
+        DRMdev = optarg;
       continue;
       case EOF:
       break;
@@ -117,11 +124,6 @@ int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
         esyslog("[mpv]: missing argument for option '%c'\n", optopt);
         return 0;
       default:
-        if (optopt == 'g') //glx with x11
-        {
-          UseGlx = 1;
-          continue;
-        }
         esyslog("[mpv]: unknown option '%c'\n", optopt);
         return 0;
     }
@@ -144,6 +146,7 @@ const char *cMpvPluginConfig::CommandLineHelp(void)
     "  -a audio\tmpv --ao (Default: alsa:device=default)\n"
     "  -v video\tmpv --vo (Default: vdpau)\n"
     "  -h hwdec\tmpv --hwdec-codecs (Default: vdpau)\n"
+    "  -c gpuctx\tmpv --gpu-context (Default: auto)\n"
     "  -d device\tmpv optical disc device (Default: /dev/dvd)\n"
     "  -l languages\tlanguages for audio and subtitles (Default: deu,de,ger,eng,en)\n"
     "  -b /dir\tbrowser root directory\n"
@@ -154,7 +157,7 @@ const char *cMpvPluginConfig::CommandLineHelp(void)
 #endif
     "  -m text\ttext displayed in VDR main menu (Default: MPV)\n"
     "  -s\t\tdon't load mpv LUA scripts\n"
-    "  -g\t\tuse GLX with X11\n"
+    "  -w windowed mode with X11\n"
     "  -g geometry\t X11 geometry [W[xH]][+-x+-y][/WS] or x:y\n"
     ;
 }
@@ -181,6 +184,8 @@ bool cMpvPluginConfig::SetupParse(const char *name, const char *value)
     ShowSubtitles = atoi(value);
   else if (!strcasecmp(name, "ExitAtEnd"))
     ExitAtEnd = atoi(value);
+  else if (!strcasecmp(name, "ShowAfterStop"))
+    ShowAfterStop = atoi(value);
   else if (!strcasecmp(name, "SavePos"))
     SavePos = atoi(value);
   else if (!strcasecmp(name, "SoftVol"))

@@ -36,10 +36,10 @@ eOSState cMpvMenuOptions::ProcessKey(eKeys Key)
     switch (Key)
     {
       case kOk:
-if(State == osUser1)
-        AddSubMenu(new cMpvMenuChapters(player));
-if(State == osUser2)
-        AddSubMenu(new cMpvMenuPlaylist(player));
+        if(State == osUser1)
+          AddSubMenu(new cMpvMenuChapters(player));
+        if(State == osUser2)
+          AddSubMenu(new cMpvMenuPlaylist(player));
       break;
 
       default:

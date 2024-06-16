@@ -14,6 +14,9 @@
 cMpvControl::cMpvControl(string Filename, bool Shuffle)
 :cControl(Player = new cMpvPlayer(Filename.c_str(), Shuffle))
 {
+  int w, h, x, y;
+  xcb_window_t window = 0;
+  xcb_connection_t *connect = NULL;
 #ifdef DEBUG
   dsyslog("[mpv] %s\n", __FUNCTION__);
 #endif
@@ -23,6 +26,17 @@ cMpvControl::cMpvControl(string Filename, bool Shuffle)
     VolumeStatus = new cMpvStatus(Player);
   infoVisible = false;
   timeSearchActive = false;
+  //for x11 get geometry from output plugin
+  if (strcmp(MpvPluginConfig->GpuCtx.c_str(),"drm") && strcmp(MpvPluginConfig->VideoOut.c_str(),"drm"))
+  {
+    Player->PlayerGetWindow("softhd", &connect, window, w, h, x, y);
+    if (connect && window)
+    {
+      Player->SetWindowSize(w, h, x, y);
+      xcb_flush(connect);
+      connect = NULL;
+    }
+  }
   cStatus::MsgReplaying(this, Filename.c_str(), Filename.c_str(), true);
 }
 
@@ -61,6 +75,7 @@ void cMpvControl::ShowProgress(int playlist)
 {
   if (!Player->IsPaused() && LastPlayerCurrent == Player->CurrentPlayTime() && Player->TotalPlayTime() > 0 && !Player->NetworkPlay())
     return;
+
   LastPlayerCurrent = Player->CurrentPlayTime();
 
   if (!DisplayReplay)
@@ -68,7 +83,8 @@ void cMpvControl::ShowProgress(int playlist)
 
   if (!infoVisible)
   {
-    UpdateMarks();
+    if (!Player->NetworkPlay())
+      UpdateMarks();
     infoVisible = true;
     timeoutShow = Setup.ProgressDisplayTime ? (time(0) + Setup.ProgressDisplayTime) : 0;
   }
@@ -113,15 +129,15 @@ void cMpvControl::ShowProgress(int playlist)
   DisplayReplay->SetMode(!Player->IsPaused(), true, Speed);
 
   if (playlist)
-{
-  DisplayReplay->SetCurrent(itoa(Player->CurrentListPos()));
-  DisplayReplay->SetTotal(itoa(Player->TotalListPos()));
-}
-else
-{
-  DisplayReplay->SetCurrent(IndexToHMSF(Player->CurrentPlayTime(), false, 1));
-  DisplayReplay->SetTotal(IndexToHMSF(Player->TotalPlayTime(), false, 1));
-}
+  {
+    DisplayReplay->SetCurrent(itoa(Player->CurrentListPos()));
+    DisplayReplay->SetTotal(itoa(Player->TotalListPos()));
+  }
+  else
+  {
+    DisplayReplay->SetCurrent(IndexToHMSF(Player->CurrentPlayTime(), false, 1));
+    DisplayReplay->SetTotal(IndexToHMSF(Player->TotalPlayTime(), false, 1));
+  }
   SetNeedsFastResponse(true);
   Skins.Flush();
 }
@@ -150,6 +166,18 @@ eOSState cMpvControl::ProcessKey(eKeys key)
   {
     cControl::Shutdown();
     return osEnd;
+  }
+  //once detect the end of file playback
+  if (Player->IsIdle() > 0 && !Player->IsRecord() && !MpvPluginConfig->ExitAtEnd)
+  {
+    Hide();
+    Player->ResetIdle();
+    if (MpvPluginConfig->ShowAfterStop == 1)
+    {
+        MpvPluginConfig->ShowOptions = 0;
+        cRemote::CallPlugin("mpv");
+    }
+    return osContinue;
   }
 
   if (timeSearchActive && key != kNone)
@@ -301,7 +329,14 @@ eOSState cMpvControl::ProcessKey(eKeys key)
           Hide();
           if (MpvPluginConfig->SavePos && !Player->NetworkPlay())
             Player->SavePosPlayer();
+          //hack to disable idle when stopping manually
+          Player->ResetIdle();
           Player->StopPlayer();
+          if (MpvPluginConfig->ShowAfterStop == 1)
+          {
+            MpvPluginConfig->ShowOptions = 0;
+            cRemote::CallPlugin("mpv");
+          }
         }
         else
         {
@@ -600,4 +635,9 @@ void cMpvControl::SeekRelative(int seconds)
 void cMpvControl::ScaleVideo(int x, int y, int width, int height)
 {
   Player->ScaleVideo(x, y, width, height);
+}
+
+uint8_t *cMpvControl::GrabImage(int *size, int *width, int *height)
+{
+  return Player->GrabImage(size, width, height);
 }

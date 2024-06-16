@@ -40,6 +40,7 @@ class cMpvPluginConfig
     int ShowMediaTitle;             // show title from media file instead of filename
     int ShowSubtitles;              // show subtitles
     int ExitAtEnd;                  // exit at the end
+    int ShowAfterStop;              // show after stop: 0 - black screen, 1 - filebrowser
     int SavePos;                    // save position on quit
     int SoftVol;                    // software volume
 
@@ -48,7 +49,7 @@ class cMpvPluginConfig
     int RefreshRate;                // enable modeline switching
     string VideoOut;                // video out device
     string HwDec;                   // hwdec codecs
-    int UseGlx;                     // enable use GLX with X11, because mpv use EGL by default.
+    string GpuCtx;                  // gpu context
     string AudioOut;                // audio out device
     string DiscDevice;              // optical disc device
     string Languages;               // language string for audio and subtitle TODO move to Setup menu
@@ -59,6 +60,7 @@ class cMpvPluginConfig
     string X11Display;              // X11 display used for mpv
     string TitleOverride;           // title to display (ovveride used via service interface)
     string Geometry;                // X11 display geometry
+    string DRMdev;                  // DRM device
     int Windowed;                   // windowed mode, not fullscreen
 
     int ShowOptions;                // switch show menu options or filebrowser menu

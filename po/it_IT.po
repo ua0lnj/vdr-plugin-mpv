@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: VDR \n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2021-02-11 22:53+1000\n"
+"POT-Creation-Date: 2024-01-28 01:08+1000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: fiveten_59\n"
 "Language-Team: fiveten_59\n"
@@ -56,11 +56,29 @@ msgstr "Disco"
 msgid "PlayDir"
 msgstr "Riproduzione continua"
 
+msgid "Remove"
+msgstr ""
+
 msgid "Shuffle"
 msgstr "Riproduzione casuale"
 
 msgid "Playlist cannot be created!"
 msgstr "La playlist non può essere creata!"
+
+msgid "Not empty directory, can't remove!"
+msgstr ""
+
+msgid "Remove empty directory?"
+msgstr ""
+
+msgid "Unable to remove directory!"
+msgstr ""
+
+msgid "Remove file?"
+msgstr ""
+
+msgid "Unable to remove file!"
+msgstr ""
 
 msgid "Options"
 msgstr "Opzioni"
@@ -82,6 +100,9 @@ msgstr "Registrazione in corso - play non disponibile!"
 
 msgid "mpv player plugin"
 msgstr "mpv player plugin"
+
+msgid "Black screen"
+msgstr "Schermo nero"
 
 msgid "Hide main menu entry"
 msgstr "Nascondere menù principale"
@@ -115,6 +136,9 @@ msgstr "Mostra sottotitoli"
 
 msgid "Exit at the end"
 msgstr "Uscire al termine"
+
+msgid "Show after stop"
+msgstr "Mostra dopo fermata"
 
 msgid "Save position on quit"
 msgstr "Salva la posizione all'uscita"

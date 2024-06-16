@@ -23,7 +23,7 @@ vdr-mpv is a fork of the vdr-play plugin from Johns. It uses libmpv for playing
 media (video, audio, picture) in VDR and also displays the VDR OSD (On Screen Display) during playback.
 You can play internet or network streams also. For this you need make mpv with lua script
 and youtube-dl (for youtube stream).
-You can record some network stream, and play it like normal vdr recordings. This is experimental mpv
+You can record some network stream, and play it like normal vdr recordings. This is an experimental mpv
 function, so some streams may not be recorded correctly. Recording is made to the vdr video directory.
 
 Requirements
@@ -56,6 +56,17 @@ Command line arguments
   mpv -hwdec (Default: vdpau)
   The hwdec which are used by mpv, this is directly passed as hwdec
   to mpv. For latest mpv use -h gpu (also see -g parameter)
+
+-c gpuctx
+  mpv --gpu-context (Default: auto)
+  The GPU context (auto, x11, drm, x11egl).
+
+  It is best to set "-v gpu -h auto".
+  Set "-v gpu -h cuda -c x11" for use cuda with X11 and GLX. Latest mpv set X11 GLX deprecated, you need configure mpv with --enable-gl-x11.
+  Set "-v gpu -h auto -c drm" for use drm output and hardware decoder without X11.
+  Set "-v vdpau -h vdpau -c x11" for use vpdau with X11 and GLX.
+  Set "-v vaapi -h vaapi -c x11" for use vaapi with X11 and GLX, GLX is slower in Intel than EGL.
+  Set "-v gpu -h vaapi-copy" for use vaapi with X11 and EGL.
 
 -d device
   optical disc device (Default: /dev/dvd)
@@ -90,13 +101,12 @@ Command line arguments
 -w
    windowed mode, not fullscreen
 
--g
 -g geometry
-  normally mpv use EGL for hwdec=gpu and can not works with X11, if this parameter is set
-  mpv use GLX for hwdec=gpu and can works with X11.
-  Latest mpv set X11 GLX deprecated, you need configure mpv with --enable-gl-x11.
   You can set X11 geometry with this parameter [W[xH]][+-x+-y][/WS] or x:y.
-  But size of OSD get from softhddevice geometry!!!
+  Resolution of OSD get from settings of output plugin (softhd*). OSD is scaled to video size.
+
+-e drm device
+  force set drm device (ex. /dev/dri/card0). Otherwise they will be tried /dev/dri/card1 and /dev/dri/card0.
 
 Plugin setup options
 --------------------
@@ -143,7 +153,8 @@ In the browser mode you can use
 
 Red:                    Play selected file
 Green:                  Play selected directory, playlist mode
-Yellow:                 Shuffle playlist
+Yellow:                 Remove selected file or empty directory
+Blue:                   Shuffle playlist
 
 The following remote keys are supported in normal operation (no disc menu active)
 
@@ -195,4 +206,3 @@ SVDRP commands
 --------------
 
 PLAY filename           play given filename
-

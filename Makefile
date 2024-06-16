@@ -17,6 +17,7 @@ XRANDR ?= $(shell pkg-config --exists xrandr && echo 1)
 LIBMPV ?= $(shell pkg-config --exists mpv && echo 1)
 LIBCDIO ?= $(shell pkg-config --exists libcdio && echo 1)
 LIBMOUNT ?= $(shell pkg-config --exists mount && echo 1)
+LIBDRM ?= $(shell pkg-config --exists libdrm && echo 1)
 
 ifeq ($(LIBMPV),1)
 CONFIG += -DUSE_LIBMPV
@@ -35,6 +36,13 @@ ifeq ($(XRANDR),1)
 CONFIG += -DUSE_XRANDR
 LIBS += $(shell pkg-config --libs xrandr)
 endif
+
+ifeq ($(LIBDRM),1)
+CONFIG += -DUSE_DRM
+CXXFLAGS += $(shell pkg-config --cflags libdrm)
+LIBS += -ldrm
+endif
+
 
 LIBS += $(shell pkg-config --libs x11-xcb)
 ### The version number of this plugin (taken from the main source file):
@@ -56,7 +64,7 @@ TMPDIR ?= /tmp
 ### The compiler options:
 
 export CFLAGS   = $(call PKGCFG,cflags)
-export CXXFLAGS = $(call PKGCFG,cxxflags)
+export CXXFLAGS += $(call PKGCFG,cxxflags)
 export CXXFLAGS += -Wno-switch
 
 ### The version number of VDR's plugin API:

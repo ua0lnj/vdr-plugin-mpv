@@ -27,10 +27,12 @@ class cMpvOsd:public cOsd
 {
   private:
     void WriteToMpv(int sw, int sh, int x, int y, int w, int h, const uint8_t * argb);
-
+    int winWidth;
+    int winHeight;
     cMpvPlayer *Player;
     int fdOsd;
     char *pOsd;
+    void OsdSizeUpdate();
 
   protected:
     virtual void SetActive(bool On);

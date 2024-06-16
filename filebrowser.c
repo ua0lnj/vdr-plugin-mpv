@@ -88,9 +88,9 @@ void cMpvFilebrowser::ShowDirectory(string Path)
     MenuTitle += " (" + Path.substr(rootDir.size() + 1, string::npos) + ")";
   SetTitle(MenuTitle.c_str());
 #ifdef USE_DISC
-  SetHelp(tr("Disc"), Directories.size() ? tr("PlayDir") : NULL, tr("Shuffle"), NULL);
+  SetHelp(tr("Disc"), Directories.size() ? tr("PlayDir") : NULL, tr("Remove"), tr("Shuffle"));
 #else
-  SetHelp(NULL, Directories.size() ? tr("PlayDir") : NULL, tr("Shuffle"), NULL);
+  SetHelp(NULL, Directories.size() ? tr("PlayDir") : NULL, tr("Remove"), tr("Shuffle"));
 #endif
   Display();
 }
@@ -134,19 +134,23 @@ int cMpvFilebrowser::PlayListCreate(string Path, FILE *fdPl)
 
   if (!PlayDirectories.size() && !PlayFiles.size()) return -1;
 
-  sort(PlayDirectories.begin(), PlayDirectories.end());
-  sort(PlayFiles.begin(), PlayFiles.end());
-
-  for (unsigned int i=0; i<PlayDirectories.size(); i++)
+  if (fdPl)
   {
-    string Filedir = Path + "/" + PlayDirectories[i];
-    PlayListCreate(Filedir, fdPl);
-  }
 
-  for (unsigned int i=0; i<PlayFiles.size(); i++)
-  {
-    string Filename = Path + "/" + PlayFiles[i];
-    fprintf(fdPl, "%s\n", Filename.c_str());
+    sort(PlayDirectories.begin(), PlayDirectories.end());
+    sort(PlayFiles.begin(), PlayFiles.end());
+
+    for (unsigned int i=0; i<PlayDirectories.size(); i++)
+    {
+      string Filedir = Path + "/" + PlayDirectories[i];
+      PlayListCreate(Filedir, fdPl);
+    }
+
+    for (unsigned int i=0; i<PlayFiles.size(); i++)
+    {
+      string Filename = Path + "/" + PlayFiles[i];
+      fprintf(fdPl, "%s\n", Filename.c_str());
+    }
   }
   return 0;
 }
@@ -164,6 +168,7 @@ eOSState cMpvFilebrowser::ProcessKey(eKeys Key)
   string newPath = "";
   cMpvFilebrowserMenuItem *item;
   eOSState State;
+  int index = 0;
   switch (Key)
   {
     case kOk:
@@ -201,11 +206,12 @@ eOSState cMpvFilebrowser::ProcessKey(eKeys Key)
       // first let VDR handle those keys or we get the previous item
       State = cOsdMenu::ProcessKey(Key);
       item = (cMpvFilebrowserMenuItem *) Get(Current());
+      if (!item) break;
       currentItem = item->Text();
 #ifdef USE_DISC
-      SetHelp(tr("Disc"), item->IsDirectory() ? tr("PlayDir") : NULL, tr("Shuffle"), NULL);
+      SetHelp(tr("Disc"), item->IsDirectory() ? tr("PlayDir") : NULL, tr("Remove"), tr("Shuffle"));
 #else
-      SetHelp(NULL, item->IsDirectory() ? tr("PlayDir") : NULL, tr("Shuffle"), NULL);
+      SetHelp(NULL, item->IsDirectory() ? tr("PlayDir") : NULL, tr("Remove"), tr("Shuffle"));
 #endif
     return State;
 
@@ -214,7 +220,7 @@ eOSState cMpvFilebrowser::ProcessKey(eKeys Key)
         return osEnd;
     break;
 
-    case kYellow:
+    case kBlue:
       item = (cMpvFilebrowserMenuItem *) Get(Current());
       if (!item) break;
       newPath = item->Path() + "/" + item->Text();
@@ -254,6 +260,69 @@ eOSState cMpvFilebrowser::ProcessKey(eKeys Key)
           return osContinue;
         }
       }
+    break;
+
+    case kYellow:
+      item = (cMpvFilebrowserMenuItem *) Get(Current());
+      if (!item) break;
+      newPath = item->Path() + "/" + item->Text();
+      index = item->Index();
+      if (item->IsDirectory())
+      {
+        int res;
+        res = PlayListCreate(newPath, NULL);
+        ShowDirectory(currentDir);
+        if (res != -1)
+        {
+          Skins.Message(mtError, tr("Not empty directory, can't remove!"));
+        }
+        else
+        {
+          if (Skins.Message(mtWarning, tr("Remove empty directory?"), 5) == kOk)
+          {
+            res = rmdir(newPath.c_str());
+            dsyslog("[mpv] remove %s %d\n", newPath.c_str(), res);
+            if (res)
+            {
+              Skins.Message(mtError, tr("Unable to remove directory!"));
+            }
+            else
+            {
+              if (index)
+              {
+                item = (cMpvFilebrowserMenuItem *) Get(index-1);
+                if (!item) break;
+                currentItem = item->Text();
+              }
+            }
+          }
+        }
+        ShowDirectory(currentDir);
+      }
+      else
+      {
+        if (Skins.Message(mtWarning, tr("Remove file?"), 5) == kOk)
+        {
+          int res;
+          res = remove(newPath.c_str());
+          dsyslog("[mpv] remove %s %d\n", newPath.c_str(), res);
+          if (res)
+          {
+            Skins.Message(mtError, tr("Unable to remove file!"));
+          }
+          else
+          {
+            if (index)
+            {
+              item = (cMpvFilebrowserMenuItem *) Get(index-1);
+              if (!item) break;
+              currentItem = item->Text();
+            }
+          }
+          ShowDirectory(currentDir);
+        }
+      }
+      return osContinue;
     break;
 
     default:

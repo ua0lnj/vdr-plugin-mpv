@@ -56,4 +56,13 @@ typedef struct
   int width;
   int height;
 } Mpv_ScaleVideo;
+
+typedef struct
+{
+  uint8_t *image;
+  int size;
+  int width;
+  int height;
+} Mpv_GrabImage;
+
 #endif

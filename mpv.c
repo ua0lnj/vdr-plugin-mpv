@@ -19,7 +19,7 @@
 #include "menu_options.h"
 #include "mpv_service.h"
 
-static const char *VERSION = "1.0.1"
+static const char *VERSION = "1.7.1"
 #ifdef GIT_REV
     "-GIT" GIT_REV
 #endif
@@ -134,6 +134,16 @@ bool cMpvPlugin::Service(const char *id, void *data)
     if(control)
     {
         control->ScaleVideo(scaleVideo->x, scaleVideo->y, scaleVideo->width, scaleVideo->height);
+    }
+    return true;
+  }
+  if (strcmp(id, "GrabImage") == 0)
+  {
+    Mpv_GrabImage *grabImage = (Mpv_GrabImage *)data;
+    cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(true));
+    if(control)
+    {
+        grabImage->image = control->GrabImage(&grabImage->size, &grabImage->width, &grabImage->height);
     }
     return true;
   }

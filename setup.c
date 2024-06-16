@@ -21,6 +21,7 @@ cMpvPluginSetup::cMpvPluginSetup()
   SetupShowMediaTitle = MpvPluginConfig->ShowMediaTitle;
   SetupShowSubtitles = MpvPluginConfig->ShowSubtitles;
   SetupExitAtEnd = MpvPluginConfig->ExitAtEnd;
+  SetupShowAfterStop = MpvPluginConfig->ShowAfterStop;
   SetupSavePos = MpvPluginConfig->SavePos;
   SetupSoftVol = MpvPluginConfig->SoftVol;
   Setup();
@@ -31,10 +32,11 @@ eOSState cMpvPluginSetup::ProcessKey(eKeys key)
   int oldUsePassthrough = SetupUsePassthrough;
   int oldSoftVol = SetupSoftVol;
   int oldPlaylistOnNextKey = SetupPlaylistOnNextKey;
+  int oldSetupExitAtEnd = SetupExitAtEnd;
   eOSState state = cMenuSetupPage::ProcessKey(key);
 
   if (key != kNone && (SetupUsePassthrough != oldUsePassthrough || SetupPlaylistOnNextKey != oldPlaylistOnNextKey ||
-    SetupSoftVol != oldSoftVol))
+    SetupSoftVol != oldSoftVol || SetupExitAtEnd != oldSetupExitAtEnd))
     Setup();
 
   return state;
@@ -42,6 +44,11 @@ eOSState cMpvPluginSetup::ProcessKey(eKeys key)
 
 void cMpvPluginSetup::Setup()
 {
+  static const char *const show_after_stop[] = {
+    tr("Black screen"), tr("Filebrowser"),
+  };
+
+
   int current = Current();
   Clear();
 
@@ -59,6 +66,8 @@ void cMpvPluginSetup::Setup()
   Add(new cMenuEditBoolItem(tr("Show media title instead of filename"), &SetupShowMediaTitle));
   Add(new cMenuEditBoolItem(tr("Show subtitles"), &SetupShowSubtitles));
   Add(new cMenuEditBoolItem(tr("Exit at the end"), &SetupExitAtEnd));
+  if (!SetupExitAtEnd)
+    Add(new cMenuEditStraItem(tr("Show after stop"), &SetupShowAfterStop, 2, show_after_stop));
   Add(new cMenuEditBoolItem(tr("Save position on quit"), &SetupSavePos));
   SetCurrent(Get(current));
   Display();
@@ -76,6 +85,7 @@ void cMpvPluginSetup::Store()
     SetupStore("ShowMediaTitle", MpvPluginConfig->ShowMediaTitle = SetupShowMediaTitle);
     SetupStore("ShowSubtitles", MpvPluginConfig->ShowSubtitles = SetupShowSubtitles);
     SetupStore("ExitAtEnd", MpvPluginConfig->ExitAtEnd = SetupExitAtEnd);
+    SetupStore("ShowAfterStop", MpvPluginConfig->ShowAfterStop = SetupShowAfterStop);
     SetupStore("SavePos", MpvPluginConfig->SavePos = SetupSavePos);
     SetupStore("SoftVol", MpvPluginConfig->SoftVol = SetupSoftVol);
 }

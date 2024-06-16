@@ -42,6 +42,7 @@ class cMpvControl:public cControl
     void SeekTo(int seconds);
     void SeekRelative(int seconds);
     void ScaleVideo(int x, int y, int width, int height);
+    uint8_t *GrabImage(int *size, int *width, int *height);
 };
 
 #endif

@@ -17,8 +17,10 @@
 #ifdef USE_XRANDR
 #include <X11/extensions/Xrandr.h>
 #endif
-#include <X11/Xlib-xcb.h>
-#include <X11/Xutil.h>
+
+#ifdef USE_DRM
+#include <xf86drmMode.h>
+#endif
 
 using std::vector;
 
@@ -35,14 +37,16 @@ using std::vector;
 #define MPV_OBSERVE_LIST_POS 11
 #define MPV_OBSERVE_LIST_COUNT 12
 #define MPV_OBSERVE_VIA_NET 13
+#define MPV_OBSERVE_TRACK_LIST 14
 
 volatile int cMpvPlayer::running = 0;
 cMpvPlayer *cMpvPlayer::PlayerHandle = NULL;
 std::string LocaleSave;
-
+int drm_ctx = 0;
+const char *drm_dev = NULL;
 Display *Dpy = NULL;
-xcb_connection_t *Connect;
-xcb_window_t VideoWindow;
+xcb_connection_t *Connect = NULL;
+xcb_window_t VideoWindow = 0;
 xcb_pixmap_t pixmap = XCB_NONE;
 xcb_cursor_t cursor = XCB_NONE;
 
@@ -57,6 +61,15 @@ extern void RemoteStop();
 }
 #endif
 
+// check mpv errors and send them to log
+static inline void check_error(int status)
+{
+  if (status < 0)
+  {
+    esyslog("[mpv] API error: %s\n", mpv_error_string(status));
+  }
+}
+
 void *cMpvPlayer::XEventThread(void *handle)
 {
   XEvent event;
@@ -65,14 +78,40 @@ void *cMpvPlayer::XEventThread(void *handle)
   char buf[64];
   char letter[64];
   int letter_len;
+  static Time clicktime;
+  static bool toggle;
   cMpvPlayer *Player = (cMpvPlayer*) handle;
 
   while (Player->PlayerIsRunning())
   {
     if(Dpy && Connect && VideoWindow) {
-        XWindowEvent(Dpy, VideoWindow, KeyPressMask, &event);
+        XWindowEvent(Dpy, VideoWindow, KeyPressMask|ButtonPressMask|StructureNotifyMask|SubstructureNotifyMask, &event);
         switch (event.type) {
-          case KeyPress:
+	  case ButtonPress:
+	    if (event.xbutton.button == 1) {
+		Time difftime = event.xbutton.time - clicktime;
+		if (difftime < 500) {
+		    check_error(mpv_set_option_string(Player->hMpv, "fullscreen", toggle ? "yes" : "no"));
+		    toggle = !toggle;
+		}
+		clicktime = event.xbutton.time;
+	    }
+	    else if (event.xbutton.button == 2) {
+		FeedKeyPress("XKeySym", "Ok", 0, 0, NULL);
+	    }
+	    else if (event.xbutton.button == 3) {
+		FeedKeyPress("XKeySym", "Menu", 0, 0, NULL);
+	    }
+	    if (event.xbutton.button == 4) {
+		FeedKeyPress("XKeySym", "Volume+", 0, 0, NULL);
+	    }
+	    if (event.xbutton.button == 5) {
+		FeedKeyPress("XKeySym", "Volume-", 0, 0, NULL);
+	    }
+	    break;
+	  case ButtonRelease:
+	    break;
+	  case KeyPress:
 	    letter_len =
 		XLookupString(&event.xkey, letter, sizeof(letter) - 1, &keysym, NULL);
 	    if (letter_len < 0) {
@@ -99,6 +138,13 @@ void *cMpvPlayer::XEventThread(void *handle)
 	    }
 	    FeedKeyPress("XKeySym", keynam, 0, 0, letter);
             break;
+          case ConfigureNotify:
+	    Player->windowWidth = event.xconfigure.width;
+	    Player->windowHeight = event.xconfigure.height;
+	    Player->windowX = event.xconfigure.x;
+	    Player->windowY = event.xconfigure.y;
+	    Player->OsdClose();
+            break; 
           default:
             break;
         }
@@ -109,16 +155,6 @@ void *cMpvPlayer::XEventThread(void *handle)
   dsyslog("[mpv] XEvent thread ended\n");
 #endif
   return handle;
-}
-
-
-// check mpv errors and send them to log
-static inline void check_error(int status)
-{
-  if (status < 0)
-  {
-    esyslog("[mpv] API error: %s\n", mpv_error_string(status));
-  }
 }
 
 void *cMpvPlayer::ObserverThread(void *handle)
@@ -140,6 +176,7 @@ void *cMpvPlayer::ObserverThread(void *handle)
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_LIST_POS, "playlist-pos-1", MPV_FORMAT_INT64);
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_LIST_COUNT, "playlist-count", MPV_FORMAT_INT64);
   mpv_observe_property(Player->hMpv, MPV_OBSERVE_VIA_NET, "demuxer-via-network", MPV_FORMAT_FLAG);
+  mpv_observe_property(Player->hMpv, MPV_OBSERVE_TRACK_LIST, "track-list", MPV_FORMAT_NODE);
 
   while (Player->PlayerIsRunning())
   {
@@ -156,6 +193,7 @@ void *cMpvPlayer::ObserverThread(void *handle)
 
       case MPV_EVENT_PLAYBACK_RESTART :
         Player->ChangeFrameRate(Player->CurrentFps()); // switching directly after the fps event causes black screen
+        Player->PlayerIdle = 0;
       break;
 
       case MPV_EVENT_LOG_MESSAGE :
@@ -167,33 +205,46 @@ void *cMpvPlayer::ObserverThread(void *handle)
           esyslog("[mpv]: %s\n", msg->text);
 #endif
       break;
-
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,0)
       case MPV_EVENT_TRACKS_CHANGED :
         Player->HandleTracksChange();
       break;
-
+#endif
       case MPV_EVENT_VIDEO_RECONFIG :
-          Player->PlayerHideCursor();
+          if(!drm_ctx) {
+            Player->PlayerGetWindow("- mpv", &Connect, VideoWindow, Player->windowWidth, Player->windowHeight, Player->windowX, Player->windowY);
+            Player->PlayerHideCursor();
+          }
+#ifdef USE_DRM
+          else
+            Player->PlayerGetDRM();
+#endif
+      break;
+
+      case MPV_EVENT_IDLE :
+        if (Player->PlayerIdle != -1)
+            Player->PlayerIdle = 1;
       break;
 
       case MPV_EVENT_NONE :
       case MPV_EVENT_END_FILE :
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,0)
       case MPV_EVENT_PAUSE :
       case MPV_EVENT_UNPAUSE :
+      case MPV_EVENT_TRACK_SWITCHED :
+      case MPV_EVENT_SCRIPT_INPUT_DISPATCH :
+      case MPV_EVENT_METADATA_UPDATE :
+      case MPV_EVENT_CHAPTER_CHANGE :
+#endif
       case MPV_EVENT_FILE_LOADED :
       case MPV_EVENT_GET_PROPERTY_REPLY :
       case MPV_EVENT_SET_PROPERTY_REPLY :
       case MPV_EVENT_COMMAND_REPLY :
       case MPV_EVENT_START_FILE :
-      case MPV_EVENT_TRACK_SWITCHED :
-      case MPV_EVENT_IDLE :
       case MPV_EVENT_TICK :
-      case MPV_EVENT_SCRIPT_INPUT_DISPATCH :
       case MPV_EVENT_CLIENT_MESSAGE :
       case MPV_EVENT_AUDIO_RECONFIG :
-      case MPV_EVENT_METADATA_UPDATE :
       case MPV_EVENT_SEEK :
-      case MPV_EVENT_CHAPTER_CHANGE :
       default :
         dsyslog("[mpv]: event: %d %s\n", event->event_id, mpv_event_name(event->event_id));
       break;
@@ -214,6 +265,8 @@ cMpvPlayer::cMpvPlayer(string Filename, bool Shuffle)
   running = 0;
   OriginalFps = -1;
   PlayerRecord = 0;
+  ObserverThreadHandle = 0;
+  XEventThreadHandle = 0;
 }
 
 cMpvPlayer::~cMpvPlayer()
@@ -270,7 +323,7 @@ double cMpvPlayer::FramesPerSecond()
   return CurrentFps();
 }
 
-void cMpvPlayer::PlayerHideCursor()
+void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_window_t &window, int &width, int &height, int &x, int &y)
 {
   int screen_nr;
   int i;
@@ -280,40 +333,39 @@ void cMpvPlayer::PlayerHideCursor()
   xcb_query_tree_cookie_t  cookie;
   xcb_query_tree_reply_t *reply;
   xcb_window_t *child;
+  xcb_window_t parent = 0;
 
   if (!Dpy)
     Dpy = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
   if (!Dpy) return;
 
-  if (!Connect)
-    Connect = XGetXCBConnection(Dpy);
-  if (!Connect) return;
+  if (!*connect)
+    *connect = XGetXCBConnection(Dpy);
+  if (!*connect) return;
 
-  if(!VideoWindow)
+  if(!window)
   {
     screen_nr = DefaultScreen(Dpy);
     //get root screen
-    screen_iter = xcb_setup_roots_iterator(xcb_get_setup(Connect));
+    screen_iter = xcb_setup_roots_iterator(xcb_get_setup(*connect));
     for (i = 0; i < screen_nr; ++i)
     {
       xcb_screen_next(&screen_iter);
     }
     screen = screen_iter.data;
     //query child of root
-    cookie = xcb_query_tree(Connect,screen->root);
-    reply = xcb_query_tree_reply(Connect, cookie, 0);
+    cookie = xcb_query_tree(*connect,screen->root);
+    reply = xcb_query_tree_reply(*connect, cookie, 0);
     len = xcb_query_tree_children_length(reply);
 
     if (len)
     {
-      uint32_t values[4];
       xcb_get_property_cookie_t procookie;
       xcb_get_property_reply_t *proreply;
 
       xcb_atom_t property = XCB_ATOM_WM_NAME;
       //get children of root
       child = xcb_query_tree_children(reply);
-      pixmap = xcb_generate_id(Connect);
 
       xcb_query_tree_cookie_t  c_cookie;
       xcb_query_tree_reply_t *c_reply;
@@ -322,8 +374,8 @@ void cMpvPlayer::PlayerHideCursor()
 
       for (i = 0; i < len; i++) {
         //query child of child
-        c_cookie = xcb_query_tree(Connect,child[i]);
-        c_reply = xcb_query_tree_reply(Connect, c_cookie, 0);
+        c_cookie = xcb_query_tree(*connect,child[i]);
+        c_reply = xcb_query_tree_reply(*connect, c_cookie, 0);
         c_len = xcb_query_tree_children_length(c_reply);
 
         if (c_len) {
@@ -333,12 +385,16 @@ void cMpvPlayer::PlayerHideCursor()
 
         for (int o = 0; o < (c_len ? c_len : 1); o++){
           //get child property
-          procookie = xcb_get_property(Connect, 0, c_len ? c_child[o] : child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
-          if (proreply = xcb_get_property_reply(Connect, procookie, NULL)) {
+          procookie = xcb_get_property(*connect, 0, c_len ? c_child[o] : child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
+          if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
             if (xcb_get_property_value_length(proreply) > 0) {
               string name = (char*)xcb_get_property_value(proreply);
-              if (name.find("- mpv") != string::npos) {
-                  VideoWindow = c_len ? c_child[o] : child[i];
+              if (name.find(need) != string::npos) {
+                  if (!c_len) window = child[i];
+                  else {
+                    window = c_child[o];
+                    parent = child[i];
+                  }
                   break;
               }
             }
@@ -347,30 +403,118 @@ void cMpvPlayer::PlayerHideCursor()
         }
         free(c_reply);
       }
-      //hide cursor
-      if (VideoWindow) {
-        xcb_create_pixmap(Connect, 1, pixmap, VideoWindow, 1, 1);
-        cursor = xcb_generate_id(Connect);
-        xcb_create_cursor(Connect, cursor, pixmap, pixmap, 0, 0, 0, 0, 0, 0, 1, 1);
-
-        values[0] = cursor;
-        xcb_change_window_attributes(Connect, VideoWindow, XCB_CW_CURSOR, values);
-      }
     }
     free(reply);
   }
 
-  if (VideoWindow) {
-    XSelectInput (Dpy, VideoWindow, KeyPressMask);
-    XMapWindow (Dpy, VideoWindow); 
+  if (window) {
+    //get geometry
+    xcb_get_geometry_cookie_t geocookie;
+    xcb_get_geometry_reply_t *georeply;
+
+    geocookie = xcb_get_geometry(*connect, window);
+    georeply = xcb_get_geometry_reply(*connect, geocookie, NULL);
+    if (georeply) {
+      width = georeply->width;
+      height = georeply->height;
+      x = georeply->x;
+      y = georeply->y;
+      free(georeply);
+    }
   }
 
+  if (parent) {
+    //get geometry
+    xcb_get_geometry_cookie_t geocookie;
+    xcb_get_geometry_reply_t *georeply;
+
+    geocookie = xcb_get_geometry(*connect, parent);
+    georeply = xcb_get_geometry_reply(*connect, geocookie, NULL);
+    if (georeply) {
+      x += georeply->x;
+      y += georeply->y;
+      free(georeply);
+    }
+  }
+}
+
+void cMpvPlayer::PlayerHideCursor()
+{
+  uint32_t values[4];
+
+  if (VideoWindow && Connect) {
+    pixmap = xcb_generate_id(Connect);
+    xcb_create_pixmap(Connect, 1, pixmap, VideoWindow, 1, 1);
+    cursor = xcb_generate_id(Connect);
+    xcb_create_cursor(Connect, cursor, pixmap, pixmap, 0, 0, 0, 0, 0, 0, 1, 1);
+    values[0] = cursor;
+    xcb_change_window_attributes(Connect, VideoWindow, XCB_CW_CURSOR, values);
+  }
+  if (VideoWindow) {
+    XSelectInput (Dpy, VideoWindow, KeyPressMask|ButtonPressMask|StructureNotifyMask|SubstructureNotifyMask);
+    XMapWindow (Dpy, VideoWindow);
+  }
   XFlush(Dpy);
 }
+
+#ifdef USE_DRM
+int cMpvPlayer::PlayerTryDRM()
+{
+  int fd;
+  if (strcmp(MpvPluginConfig->DRMdev.c_str(),"")) {
+    drm_dev = MpvPluginConfig->DRMdev.c_str();
+    return 1;
+  }
+  //card1 mean external card, card0 internal. First try external card
+  fd = open("/dev/dri/card1", O_RDWR);
+  if (fd < 0) {
+    fd = open("/dev/dri/card0", O_RDWR);
+    if (fd < 0) return 0;
+    else drm_dev = "/dev/dri/card0";
+  } else drm_dev = "/dev/dri/card1";
+
+  close(fd);
+  return 1;
+}
+
+void cMpvPlayer::PlayerGetDRM()
+{
+  int fd, i;
+  drmModeRes *resources;
+  drmModeConnector *connector;
+  drmModeModeInfo mode;
+
+  fd = open(drm_dev, O_RDWR);
+  if (fd < 0) return;
+
+  resources = drmModeGetResources(fd);
+  if (resources != NULL) {
+    for(i = 0; i < resources->count_connectors; ++i) {
+      connector = drmModeGetConnector(fd, resources->connectors[i]);
+      if(connector != NULL) {
+        if(connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0)
+          break;
+        drmModeFreeConnector(connector);
+      }
+    }
+    if(i < resources->count_connectors) {
+      mode = connector->modes[0];
+      windowWidth = mode.hdisplay;
+      windowHeight = mode.vdisplay;
+      drmModeFreeConnector(connector);
+    } else
+      esyslog("No active connector found\n");
+
+    drmModeFreeResources(resources);
+    close(fd);
+  }
+}
+#endif
 
 void cMpvPlayer::PlayerStart()
 {
   PlayerPaused = 0;
+  PlayerIdle = 0;
   PlayerSpeed = 1;
   PlayerDiscNav = 0;
 
@@ -397,13 +541,25 @@ void cMpvPlayer::PlayerStart()
 
   check_error(mpv_set_option_string(hMpv, "vo", MpvPluginConfig->VideoOut.c_str()));
   check_error(mpv_set_option_string(hMpv, "hwdec", MpvPluginConfig->HwDec.c_str()));
-  if (MpvPluginConfig->UseGlx)
+  check_error(mpv_set_option_string(hMpv, "gpu-context", MpvPluginConfig->GpuCtx.c_str()));
+#ifdef USE_DRM
+  if (!strcmp(MpvPluginConfig->GpuCtx.c_str(),"drm") || !strcmp(MpvPluginConfig->VideoOut.c_str(),"drm"))
   {
-    check_error(mpv_set_option_string(hMpv, "gpu-context", "x11"));
+    drm_ctx = 1;
+    if (!PlayerTryDRM()) return;
+    check_error(mpv_set_option_string(hMpv, "drm-device", drm_dev));
   }
-  if (strcmp(MpvPluginConfig->Geometry.c_str(),""))
-  {
-    check_error(mpv_set_option_string(hMpv, "geometry", MpvPluginConfig->Geometry.c_str()));
+#endif
+  //no geometry with drm
+  if (!drm_ctx) {
+    if (strcmp(MpvPluginConfig->Geometry.c_str(),""))
+    {
+      check_error(mpv_set_option_string(hMpv, "geometry", MpvPluginConfig->Geometry.c_str()));
+    } else if (windowWidth && windowHeight) {
+      char geo[25];
+      sprintf(geo, "%dx%d+%d+%d", windowWidth, windowHeight, windowX, windowY);
+      check_error(mpv_set_option_string(hMpv, "geometry", geo));
+    }
   }
   if (!MpvPluginConfig->Windowed)
   {
@@ -411,18 +567,29 @@ void cMpvPlayer::PlayerStart()
   }
   if (MpvPluginConfig->UseDeinterlace)
   {
-    if (!strcmp(MpvPluginConfig->HwDec.c_str(),"vaapi"))
+    if (strstr(MpvPluginConfig->HwDec.c_str(),"vaapi"))
     {
+      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vf", "vavpp=deint=auto"));
     }
-    if (!strcmp(MpvPluginConfig->HwDec.c_str(),"vdpau"))
+    else if (strstr(MpvPluginConfig->HwDec.c_str(),"vdpau"))
     {
+      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
     }
-    if (!strcmp(MpvPluginConfig->HwDec.c_str(),"cuda"))
+    else if (strstr(MpvPluginConfig->HwDec.c_str(),"cuda"))
     {
       check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vd-lavc-o", "deint=adaptive"));
+    }
+    else if (strstr(MpvPluginConfig->HwDec.c_str(),"nvdec"))
+    {
+      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
+      check_error(mpv_set_option_string(hMpv, "deinterlace", "yes"));
+    }
+    else
+    {
+      check_error(mpv_set_option_string(hMpv, "deinterlace", "yes"));
     }
   }
   check_error(mpv_set_option_string(hMpv, "audio-device", MpvPluginConfig->AudioOut.c_str()));
@@ -438,6 +605,7 @@ void cMpvPlayer::PlayerStart()
   check_error(mpv_set_option_string(hMpv, "config", "yes"));
   check_error(mpv_set_option_string(hMpv, "ontop", "yes"));
   check_error(mpv_set_option_string(hMpv, "cursor-autohide", "always"));
+  check_error(mpv_set_option_string(hMpv, "input-cursor", "no"));
   check_error(mpv_set_option_string(hMpv, "stop-playback-on-init-failure", "no"));
   check_error(mpv_set_option_string(hMpv, "idle", MpvPluginConfig->ExitAtEnd ? "once" : "yes"));
   check_error(mpv_set_option_string(hMpv, "force-window", "immediate"));
@@ -451,7 +619,11 @@ void cMpvPlayer::PlayerStart()
   {
     check_error(mpv_set_option_string(hMpv, "audio-spdif", "ac3,dts"));
     if (MpvPluginConfig->UseDtsHdPassthrough)
+    {
+      check_error(mpv_set_option_string(hMpv, "ad-lavc-downmix", "no"));
+      check_error(mpv_set_option_string(hMpv, "audio-channels", "7.1,5.1,stereo"));
       check_error(mpv_set_option_string(hMpv, "audio-spdif", "ac3,dts,dts-hd,truehd,eac3"));
+    }
   }
   else
   {
@@ -463,8 +635,10 @@ void cMpvPlayer::PlayerStart()
     if (MpvPluginConfig->StereoDownmix)
     {
       check_error(mpv_set_option_string(hMpv, "ad-lavc-downmix", "yes"));
-      check_error(mpv_set_option_string(hMpv, "audio-channels", "2"));
+      check_error(mpv_set_option_string(hMpv, "audio-channels", "stereo"));
     }
+    else
+      check_error(mpv_set_option_string(hMpv, "audio-channels", "7.1,5.1,stereo"));
   }
 
   if (PlayShuffle && IsPlaylist(PlayFilename))
@@ -502,9 +676,11 @@ void cMpvPlayer::PlayerStart()
   // start thread to observe and react on mpv events
   pthread_create(&ObserverThreadHandle, NULL, ObserverThread, this);
 
-  pthread_create(&XEventThreadHandle, NULL, XEventThread, this);
-
-  RemoteStart();
+  if (!drm_ctx)
+  {
+    pthread_create(&XEventThreadHandle, NULL, XEventThread, this);
+    RemoteStart();
+  }
 }
 
 void cMpvPlayer::HandlePropertyChange(mpv_event *event)
@@ -515,7 +691,8 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
     return;
 
   // don't log on time-pos change since this floods the log
-  if (event->reply_userdata != MPV_OBSERVE_TIME_POS)
+  if (event->reply_userdata != MPV_OBSERVE_TIME_POS
+    && event->reply_userdata != MPV_OBSERVE_LENGTH)
   {
     dsyslog("[mpv]: property %s \n", property->name);
   }
@@ -555,13 +732,18 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
           ChapterTitles.push_back (Node.u.list->values[i].u.list->values[0].u.string);
           PlayerChapters.push_back (Node.u.list->values[i].u.list->values[1].u.double_);
         }
+        mpv_free_node_contents(&Node);
       }
     break;
 
     case MPV_OBSERVE_CHAPTER :
       PlayerChapter = (int)*(int64_t*)property->data;
     break;
-
+#if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2,0)
+    case MPV_OBSERVE_TRACK_LIST :
+        HandleTracksChange();
+    break;
+#endif
     case MPV_OBSERVE_PAUSE :
       PlayerPaused = (int)*(int64_t*)property->data;
     break;
@@ -607,9 +789,9 @@ void cMpvPlayer::HandlePropertyChange(mpv_event *event)
             if ((int)ListTitles.size() < i + 1) ListTitles.push_back (title.substr(title.find_last_of("/") + 1));
 //            dsyslog("%d %s ---- %s\n",i,ListFilename(i+1).c_str(),ListTitle(i+1).c_str());
           }
+          mpv_free_node_contents(&Node1);
         }
       }
-
     break;
   }
 }
@@ -651,6 +833,7 @@ void cMpvPlayer::HandleTracksChange()
       DeviceSetAvailableTrack(type, i, TrackId, TrackLanguage.c_str(), TrackTitle.c_str());
     }
   }
+  mpv_free_node_contents(&Node);
 }
 
 void cMpvPlayer::OsdClose()
@@ -665,14 +848,16 @@ void cMpvPlayer::Shutdown()
 {
   RemoteStop();
 
-  if (XEventThreadHandle) {
-    void *res;
-    int s;
-    pthread_cancel(XEventThreadHandle);
-    while(res != PTHREAD_CANCELED) {
-      s= pthread_join(XEventThreadHandle, &res);
-      esyslog("cansel %d\n",s);
-      if (s) break;
+  if(!drm_ctx) {
+    if (XEventThreadHandle) {
+      void *res;
+      int s;
+      pthread_cancel(XEventThreadHandle);
+      while(res != PTHREAD_CANCELED) {
+        s= pthread_join(XEventThreadHandle, &res);
+        esyslog("cansel %d\n",s);
+        if (s) break;
+      }
     }
   }
 
@@ -689,22 +874,25 @@ void cMpvPlayer::Shutdown()
 
   VideoWindow = 0;
 
-  if (cursor != XCB_NONE) {
-    xcb_free_cursor(Connect, cursor);
-    cursor = XCB_NONE;
+  if (!drm_ctx) {
+    if (cursor != XCB_NONE) {
+      xcb_free_cursor(Connect, cursor);
+      cursor = XCB_NONE;
+    }
+    if (pixmap != XCB_NONE) {
+      xcb_free_pixmap(Connect, pixmap);
+      pixmap = XCB_NONE;
+    }
+    if (Connect) {
+      xcb_flush(Connect);
+      Connect = NULL;
+    }
+    if (Dpy) {
+      XFlush(Dpy);
+      Dpy = NULL;
+    }
   }
-  if (pixmap != XCB_NONE) {
-    xcb_free_pixmap(Connect, pixmap);
-    pixmap = XCB_NONE;
-  }
-  if (Connect) {
-    xcb_flush(Connect);
-    Connect = NULL;
-  }
-  if (Dpy) {
-    XFlush(Dpy);
-    Dpy = NULL;
-  }
+
 #if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(1,29)
   mpv_destroy(hMpv);
 #else
@@ -746,7 +934,7 @@ bool cMpvPlayer::IsPlaylist(string File)
 void cMpvPlayer::ChangeFrameRate(int TargetRate)
 {
 #ifdef USE_XRANDR
-  if (!MpvPluginConfig->RefreshRate)
+  if (!MpvPluginConfig->RefreshRate || drm_ctx)
     return;
 
   Display *Dpl;
@@ -800,29 +988,76 @@ void cMpvPlayer::ScaleVideo(int x, int y, int width, int height)
   int osdWidth, osdHeight;
   double Aspect;
   cDevice::PrimaryDevice()->GetOsdSize(osdWidth, osdHeight, Aspect);
+  mpv_get_property(hMpv, "video-params/aspect", MPV_FORMAT_DOUBLE, &Aspect);
+  if (Aspect > 1.77) Aspect = 1.77;
 
   if(!x && !y && !width && !height)
   {
     mpv_set_property_string(hMpv, "video-pan-x", "0.0");
     mpv_set_property_string(hMpv, "video-pan-y", "0.0");
+#if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2,0)
     mpv_set_property_string(hMpv, "video-scale-x", "1.0");
     mpv_set_property_string(hMpv, "video-scale-y", "1.0");
+#else
+    mpv_set_property_string(hMpv, "video-zoom", "0");
+#endif
   }
   else
   {
-    int err = snprintf (buffer, sizeof(buffer), "%d:%d", width, osdWidth);
+    int err;
+#if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2,0)
+    err = snprintf (buffer, sizeof(buffer), "%d:%d", width, osdWidth);
     if (err > 0)
       mpv_set_property_string(hMpv, "video-scale-x", buffer);
     err = snprintf (buffer, sizeof(buffer), "%d:%d", height, osdHeight);
     if (err > 0)
       mpv_set_property_string(hMpv, "video-scale-y", buffer);
-    err = snprintf (buffer, sizeof(buffer), "%d:%d", x - (osdWidth - width) / 2, width);
+#else
+    if (osdWidth > width)
+      err = snprintf (buffer, sizeof(buffer), "-%f", ((float)osdWidth/width)/2.0);
+    else
+      err = snprintf (buffer, sizeof(buffer), "%f", ((float)width/osdWidth)/2.0);
+    if (err > 0)
+      mpv_set_property_string(hMpv, "video-zoom", buffer);
+#endif
+    err = snprintf (buffer, sizeof(buffer), "%d:%d", x - (int)((osdWidth - width) * Aspect / 3.54), width);
     if (err > 0)
       mpv_set_property_string(hMpv, "video-pan-x", buffer);
     err = snprintf (buffer, sizeof(buffer), "%d:%d", y - (osdHeight - height) / 2,height);
     if (err > 0)
       mpv_set_property_string(hMpv, "video-pan-y", buffer);
   }
+}
+
+uint8_t *cMpvPlayer::GrabImage(int *size, int *width, int *height)
+{
+  uint8_t *data = NULL;
+  mpv_byte_array *ba = NULL;
+  mpv_node Node;
+  const char *cmd[] = {"screenshot-raw", "window", NULL};
+
+  dsyslog("[mpv] %s %d %d %d\n", __FUNCTION__, *size, *width, *height);
+
+  mpv_command_ret(hMpv, cmd, &Node);
+  if(Node.format == MPV_FORMAT_NODE_MAP)
+  {
+
+    for (int i=0; i<Node.u.list->num; i++)
+    {
+      if (strcmp(Node.u.list->keys[i], "w") == 0) *width = Node.u.list->values[i].u.int64;
+      if (strcmp(Node.u.list->keys[i], "h") == 0) *height = Node.u.list->values[i].u.int64;
+      if (strcmp(Node.u.list->keys[i], "data") == 0) ba = Node.u.list->values[i].u.ba;
+    }
+
+    data = (uint8_t*)malloc(ba->size);
+    memcpy(data, ba->data, ba->size);
+    *size = ba->size;
+
+    mpv_free_node_contents(&Node);
+    return data;
+  }
+
+  return NULL;
 }
 
 void cMpvPlayer::SendCommand(const char *cmd, ...)
@@ -971,6 +1206,6 @@ void cMpvPlayer::SetVolume(int Volume)
 {
   if (MpvPluginConfig->SoftVol)
     SendCommand("set volume %d\n", Volume);
-  else
+  else if (PlayerIsRunning())
     mpv_set_property_string(hMpv, "ao-volume", std::to_string(Volume).c_str());
 }

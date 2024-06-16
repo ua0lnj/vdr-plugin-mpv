@@ -13,6 +13,8 @@
 #include <vector>
 #include <vdr/player.h>
 #include <mpv/client.h>
+#include <X11/Xlib-xcb.h>
+#include <X11/Xutil.h>
 
 using std::string;
 using std::vector;
@@ -23,6 +25,8 @@ class cMpvPlayer:public cPlayer
     void PlayerStart();
     void SwitchOsdToMpv();
     void PlayerHideCursor();
+    void PlayerGetDRM();
+    int PlayerTryDRM();
 
     string PlayFilename;              // file to play
     bool PlayShuffle;                 // shuffle playlist
@@ -40,6 +44,7 @@ class cMpvPlayer:public cPlayer
 
     // Player status variables
     int PlayerPaused;                 // player paused
+    int PlayerIdle;                   // player idle
     int PlayerRecord;                 // player record
     int PlayerDiscNav;                // discnav active
     int PlayerNumChapters;            // number of chapters
@@ -59,6 +64,10 @@ class cMpvPlayer:public cPlayer
     vector<string> ListFilenames;     // filenames in playlist
     vector<string> ListTitles   ;     // titles in playlist
     int isNetwork;                    // detect network stream
+    int windowWidth;
+    int windowHeight;
+    int windowX;
+    int windowY;
 
   public:
     cMpvPlayer(string Filename, bool Shuffle=false);
@@ -73,10 +82,12 @@ class cMpvPlayer:public cPlayer
     void Shutdown();
     static volatile int PlayerIsRunning() { return running; }
     static cMpvPlayer *Player() { return PlayerHandle; }
+    void PlayerGetWindow(string name, xcb_connection_t **connect, xcb_window_t &window, int &width, int &height, int &x, int &y);
 
     // functions to send commands to mpv
     void SendCommand(const char *cmd, ...);
     void PlayNew(string Filename);
+    void ResetIdle() { PlayerIdle = -1; }
     void Record(string Filename);
     void Seek(int Seconds); // seek n seconds
     void SetTimePos(int Seconds);
@@ -101,10 +112,13 @@ class cMpvPlayer:public cPlayer
     void NextPlaylistItem();
     void PreviousPlaylistItem();
     void SetVolume(int Volume);
+    void SetWindowSize(int w, int h, int x, int y) { windowWidth = w; windowHeight = h; windowX = x; windowY = y; }
     void ScaleVideo(int x, int y, int width, int height);
+    uint8_t *GrabImage(int *size, int *width, int *height);
 
     // functions to get different status information about the current playback
     int IsPaused() { return PlayerPaused; }
+    int IsIdle() { return PlayerIdle; }
     int IsRecord() { return PlayerRecord; }
     int DiscNavActive() { return PlayerDiscNav; }
     int NumChapters() { return PlayerNumChapters; }
@@ -122,6 +136,8 @@ class cMpvPlayer:public cPlayer
     string ListTitle(unsigned int pos) {if (pos <= ListTitles.size() && pos) return ListTitles[pos-1]; else return ""; }
     string ListFilename(unsigned int pos) {if (pos <= ListFilenames.size() && pos) return ListFilenames[pos-1]; else return ""; }
     int NetworkPlay() { return isNetwork; }
+    int WindowWidth() { return windowWidth; }
+    int WindowHeight() { return windowHeight; }
 };
 
 #endif
