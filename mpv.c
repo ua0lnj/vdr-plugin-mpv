@@ -73,7 +73,7 @@ bool cMpvPlugin::Initialize(void)
 
 void cMpvPlugin::PlayFile(string Filename, bool Shuffle)
 {
-  if (!cMpvPlayer::PlayerIsRunning())
+  if (cPluginManager::GetPlugin("softhddevice") && !cMpvPlayer::PlayerIsRunning())
     cControl::Launch(new cMpvControl(Filename.c_str(), Shuffle));
   else
   {
