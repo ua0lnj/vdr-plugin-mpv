@@ -65,12 +65,6 @@ vector<string> cMpvPluginConfig::ExplodeString(string Input)
 int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
 {
   char *s;
-  if ((s = getenv("DISPLAY")))
-  {
-    X11Display = s;
-  }
-  else
-    setenv("DISPLAY", X11Display.c_str(), 1);
 
   for (;;)
   {
@@ -133,6 +127,13 @@ int cMpvPluginConfig::ProcessArgs(int argc, char *const argv[])
   {
     esyslog("[mpv]: unhandled argument '%s'\n", argv[optind++]);
   }
+
+  if ((s = getenv("DISPLAY")))
+  {
+    X11Display = s;
+  }
+  else if (strcmp(GpuCtx.c_str(),"drm") && strcmp(VideoOut.c_str(),"drm"))
+    setenv("DISPLAY", X11Display.c_str(), 1);
 
   //convert the playlist extension string to a vector
   PlaylistExtensions = ExplodeString(PlayListExtString);
