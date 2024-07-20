@@ -73,6 +73,26 @@ static inline void check_error(int status)
   }
 }
 
+void set_deinterlace(mpv_handle *h)
+{
+    if (strstr(MpvPluginConfig->HwDec.c_str(),"vaapi"))
+    {
+      check_error(mpv_set_option_string(h, "vf", "vavpp=deint=auto"));
+    }
+    else if (strstr(MpvPluginConfig->HwDec.c_str(),"vdpau"))
+    {
+      check_error(mpv_set_option_string(h, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
+    }
+    else if (strstr(MpvPluginConfig->HwDec.c_str(),"cuda"))
+    {
+      check_error(mpv_set_option_string(h, "vd-lavc-o", "deint=adaptive"));
+    }
+    else
+    {
+      check_error(mpv_set_option_string(h, "deinterlace", "yes"));
+    }
+}
+
 void *cMpvPlayer::XEventThread(void *handle)
 {
   XEvent event;
@@ -211,6 +231,7 @@ void *cMpvPlayer::ObserverThread(void *handle)
       case MPV_EVENT_PLAYBACK_RESTART :
         Player->ChangeFrameRate(Player->CurrentFps()); // switching directly after the fps event causes black screen
         Player->PlayerIdle = 0;
+        if (MpvPluginConfig->UseDeinterlace && !Player->Image()) set_deinterlace(Player->hMpv);
       break;
 
       case MPV_EVENT_LOG_MESSAGE :
@@ -534,6 +555,7 @@ void cMpvPlayer::PlayerStart()
   PlayerIdle = 0;
   PlayerSpeed = 1;
   PlayerDiscNav = 0;
+  isImage = 0;
 
   SwitchOsdToMpv();
 
@@ -585,22 +607,7 @@ void cMpvPlayer::PlayerStart()
   }
   if (MpvPluginConfig->UseDeinterlace)
   {
-    if (strstr(MpvPluginConfig->HwDec.c_str(),"vaapi"))
-    {
-      check_error(mpv_set_option_string(hMpv, "vf", "vavpp=deint=auto"));
-    }
-    else if (strstr(MpvPluginConfig->HwDec.c_str(),"vdpau"))
-    {
-      check_error(mpv_set_option_string(hMpv, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
-    }
-    else if (strstr(MpvPluginConfig->HwDec.c_str(),"cuda"))
-    {
-      check_error(mpv_set_option_string(hMpv, "vd-lavc-o", "deint=adaptive"));
-    }
-    else
-    {
-      check_error(mpv_set_option_string(hMpv, "deinterlace", "yes"));
-    }
+    set_deinterlace(hMpv);
   }
   check_error(mpv_set_option_string(hMpv, "audio-device", MpvPluginConfig->AudioOut.c_str()));
   check_error(mpv_set_option_string(hMpv, "slang", MpvPluginConfig->Languages.c_str()));
@@ -834,6 +841,11 @@ void cMpvPlayer::HandleTracksChange()
         TrackLanguage = Node.u.list->values[i].u.list->values[j].u.string;
       if (strcmp(Node.u.list->values[i].u.list->keys[j], "title") == 0)
         TrackTitle = Node.u.list->values[i].u.list->values[j].u.string;
+      if (strcmp(Node.u.list->values[i].u.list->keys[j], "image") == 0)
+      {
+        isImage = Node.u.list->values[i].u.list->values[j].u.flag;
+        if (isImage) check_error(mpv_set_option_string(hMpv, "deinterlace", "no"));
+      }
     }
     if (TrackType == "audio")
     {

@@ -64,6 +64,7 @@ class cMpvPlayer:public cPlayer
     vector<string> ListFilenames;     // filenames in playlist
     vector<string> ListTitles   ;     // titles in playlist
     int isNetwork;                    // detect network stream
+    int isImage;
     int windowWidth;
     int windowHeight;
     int windowX;
@@ -136,6 +137,7 @@ class cMpvPlayer:public cPlayer
     string ListTitle(unsigned int pos) {if (pos <= ListTitles.size() && pos) return ListTitles[pos-1]; else return ""; }
     string ListFilename(unsigned int pos) {if (pos <= ListFilenames.size() && pos) return ListFilenames[pos-1]; else return ""; }
     int NetworkPlay() { return isNetwork; }
+    int Image() {return isImage; }
     int WindowWidth() { return windowWidth; }
     int WindowHeight() { return windowHeight; }
 };
