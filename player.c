@@ -559,6 +559,7 @@ void cMpvPlayer::PlayerStart()
   check_error(mpv_set_option_string(hMpv, "vo", MpvPluginConfig->VideoOut.c_str()));
   check_error(mpv_set_option_string(hMpv, "hwdec", MpvPluginConfig->HwDec.c_str()));
   check_error(mpv_set_option_string(hMpv, "gpu-context", MpvPluginConfig->GpuCtx.c_str()));
+  check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
 #ifdef USE_DRM
   if (!strcmp(MpvPluginConfig->GpuCtx.c_str(),"drm") || !strcmp(MpvPluginConfig->VideoOut.c_str(),"drm"))
   {
@@ -586,23 +587,15 @@ void cMpvPlayer::PlayerStart()
   {
     if (strstr(MpvPluginConfig->HwDec.c_str(),"vaapi"))
     {
-      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vf", "vavpp=deint=auto"));
     }
     else if (strstr(MpvPluginConfig->HwDec.c_str(),"vdpau"))
     {
-      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vf", "vdpaupp=deint=yes:deint-mode=temporal-spatial"));
     }
     else if (strstr(MpvPluginConfig->HwDec.c_str(),"cuda"))
     {
-      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
       check_error(mpv_set_option_string(hMpv, "vd-lavc-o", "deint=adaptive"));
-    }
-    else if (strstr(MpvPluginConfig->HwDec.c_str(),"nvdec"))
-    {
-      check_error(mpv_set_option_string(hMpv, "hwdec-codecs", "all"));
-      check_error(mpv_set_option_string(hMpv, "deinterlace", "yes"));
     }
     else
     {
