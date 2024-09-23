@@ -19,7 +19,7 @@
 #include "menu_options.h"
 #include "mpv_service.h"
 
-static const char *VERSION = "1.7.3"
+static const char *VERSION = "1.7.4"
 #ifdef GIT_REV
     "-GIT" GIT_REV
 #endif
@@ -77,7 +77,12 @@ void cMpvPlugin::PlayFile(string Filename, bool Shuffle)
     cControl::Launch(new cMpvControl(Filename.c_str(), Shuffle));
   else
   {
+#if APIVERSNUM < 20402
     cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(true));
+#else
+    cMutexLock ControlMutexLock;
+    cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(ControlMutexLock, true));
+#endif
     if(control)
       control->PlayNew(Filename.c_str());
   }
@@ -118,11 +123,17 @@ cOsdObject *cMpvPlugin::MainMenuAction(void)
 
 bool cMpvPlugin::Service(const char *id, void *data)
 {
+#if APIVERSNUM >= 20402
+    cMutexLock ControlMutexLock;
+#endif
   if (strcmp(id, "Mpv_Seek") == 0)
   {
     Mpv_Seek *seekInfo = (Mpv_Seek *)data;
-
+#if APIVERSNUM < 20402
     cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(true));
+#else
+    cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(ControlMutexLock, true));
+#endif
     if(control)
     {
       if(seekInfo->SeekRelative != 0)
@@ -139,7 +150,11 @@ bool cMpvPlugin::Service(const char *id, void *data)
   if (strcmp(id, "ScaleVideo") == 0)
   {
     Mpv_ScaleVideo *scaleVideo = (Mpv_ScaleVideo *)data;
+#if APIVERSNUM < 20402
     cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(true));
+#else
+    cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(ControlMutexLock, true));
+#endif
     if(control)
     {
         control->ScaleVideo(scaleVideo->x, scaleVideo->y, scaleVideo->width, scaleVideo->height);
@@ -149,7 +164,11 @@ bool cMpvPlugin::Service(const char *id, void *data)
   if (strcmp(id, "GrabImage") == 0)
   {
     Mpv_GrabImage *grabImage = (Mpv_GrabImage *)data;
+#if APIVERSNUM < 20402
     cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(true));
+#else
+    cMpvControl* control = dynamic_cast<cMpvControl*>(cControl::Control(ControlMutexLock, true));
+#endif
     if(control)
     {
         grabImage->image = control->GrabImage(&grabImage->size, &grabImage->width, &grabImage->height);
