@@ -87,6 +87,7 @@ Command line arguments
 
 -r
   switch modeline to refresh rate of played file
+  x11:
   xrandr is needed for this to work. If no xrandr is detected during compile time
   this feature will be deactivated.
 
@@ -102,7 +103,10 @@ Command line arguments
    windowed mode, not fullscreen
 
 -g geometry
-  You can set X11 geometry with this parameter [W[xH]][+-x+-y][/WS] or x:y.
+  x11:
+    You can set X11 geometry with this parameter [W[xH]][+-x+-y][/WS] or x:y.
+  drm:
+    You can set drm mode with this parameter [WxH][@R].
   Resolution of OSD get from settings of output plugin (softhd*). OSD is scaled to video size.
 
 -e drm device

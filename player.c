@@ -521,6 +521,8 @@ void cMpvPlayer::PlayerGetDRM()
   drmModeRes *resources;
   drmModeConnector *connector;
   drmModeModeInfo mode;
+  drmModeEncoder *encoder;
+  drmModeCrtc *crtc;
 
   fd = open(drm_dev, O_RDWR);
   if (fd < 0) return;
@@ -536,13 +538,22 @@ void cMpvPlayer::PlayerGetDRM()
       }
     }
     if(i < resources->count_connectors) {
-      mode = connector->modes[0];
+
+      encoder = drmModeGetEncoder(fd, connector->encoder_id);
+      crtc = drmModeGetCrtc(fd, encoder->crtc_id);
+
+      mode = crtc->mode;
       windowWidth = mode.hdisplay;
       windowHeight = mode.vdisplay;
+
+      drmModeFreeCrtc(crtc);
+      drmModeFreeEncoder(encoder);
       drmModeFreeConnector(connector);
+
     } else
       esyslog("No active connector found\n");
 
+    esyslog("windowWidth %d windowHeight %d\n",windowWidth,windowHeight);
     drmModeFreeResources(resources);
     close(fd);
   }
@@ -590,8 +601,9 @@ void cMpvPlayer::PlayerStart()
     check_error(mpv_set_option_string(hMpv, "drm-device", drm_dev));
   }
 #endif
-  //no geometry with drm
-  if (!drm_ctx) {
+  //window geometry with x11, drm-mode with drm
+  if (!drm_ctx) //x11
+  {
     if (strcmp(MpvPluginConfig->Geometry.c_str(),""))
     {
       check_error(mpv_set_option_string(hMpv, "geometry", MpvPluginConfig->Geometry.c_str()));
@@ -600,11 +612,20 @@ void cMpvPlayer::PlayerStart()
       sprintf(geo, "%dx%d+%d+%d", windowWidth, windowHeight, windowX, windowY);
       check_error(mpv_set_option_string(hMpv, "geometry", geo));
     }
+    if (!MpvPluginConfig->Windowed)
+    {
+      check_error(mpv_set_option_string(hMpv, "fullscreen", "yes"));
+    }
   }
-  if (!MpvPluginConfig->Windowed)
+#ifdef USE_DRM
+  else //drm
   {
-    check_error(mpv_set_option_string(hMpv, "fullscreen", "yes"));
+    if (strcmp(MpvPluginConfig->Geometry.c_str(),""))
+    {
+      check_error(mpv_set_option_string(hMpv, "drm-mode", MpvPluginConfig->Geometry.c_str()));
+    }
   }
+#endif
   if (MpvPluginConfig->UseDeinterlace)
   {
     set_deinterlace(hMpv);
@@ -959,51 +980,55 @@ bool cMpvPlayer::IsPlaylist(string File)
 
 void cMpvPlayer::ChangeFrameRate(int TargetRate)
 {
-#ifdef USE_XRANDR
-  if (!MpvPluginConfig->RefreshRate || drm_ctx)
+  if (!MpvPluginConfig->RefreshRate)
     return;
 
-  Display *Dpl;
-  int RefreshRate;
-  XRRScreenConfiguration *CurrInfo;
-
-  if (TargetRate == 25)
-    TargetRate = 50; // fix DVD audio and since this is doubled it's ok
-
-  if (TargetRate == 23)
-    TargetRate = 24;
-
-  Dpl = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
-
-  if (Dpl)
+  int RefreshRate = 0;
+#ifdef USE_XRANDR
+  if (!drm_ctx)
   {
-    short *Rates;
-    int NumberOfRates;
-    SizeID CurrentSizeId;
-    Rotation CurrentRotation;
-    int RateFound = 0;
+    Display *Dpl;
 
-    CurrInfo = XRRGetScreenInfo(Dpl, DefaultRootWindow(Dpl));
-    RefreshRate = XRRConfigCurrentRate(CurrInfo);
-    CurrentSizeId =
-    XRRConfigCurrentConfiguration(CurrInfo, &CurrentRotation);
-    Rates = XRRConfigRates(CurrInfo, CurrentSizeId, &NumberOfRates);
+    XRRScreenConfiguration *CurrInfo;
 
-    while (NumberOfRates-- > 0)
+    if (TargetRate == 25)
+      TargetRate = 50; // fix DVD audio and since this is doubled it's ok
+
+    if (TargetRate == 23)
+      TargetRate = 24;
+
+    Dpl = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
+
+    if (Dpl)
     {
-      if (TargetRate == *Rates++)
-        RateFound = 1;
-    }
+      short *Rates;
+      int NumberOfRates;
+      SizeID CurrentSizeId;
+      Rotation CurrentRotation;
+      int RateFound = 0;
 
-    if ((RefreshRate != TargetRate) && (RateFound == 1))
-    {
-      OriginalFps = RefreshRate;
-      XRRSetScreenConfigAndRate(Dpl, CurrInfo, DefaultRootWindow(Dpl),
-      CurrentSizeId, CurrentRotation, TargetRate, CurrentTime);
-    }
+      CurrInfo = XRRGetScreenInfo(Dpl, DefaultRootWindow(Dpl));
+      RefreshRate = XRRConfigCurrentRate(CurrInfo);
+      CurrentSizeId =
+      XRRConfigCurrentConfiguration(CurrInfo, &CurrentRotation);
+      Rates = XRRConfigRates(CurrInfo, CurrentSizeId, &NumberOfRates);
 
-    XRRFreeScreenConfigInfo(CurrInfo);
-    XCloseDisplay(Dpl);
+      while (NumberOfRates-- > 0)
+      {
+        if (TargetRate == *Rates++)
+          RateFound = 1;
+      }
+
+      if ((RefreshRate != TargetRate) && (RateFound == 1))
+      {
+        OriginalFps = RefreshRate;
+        XRRSetScreenConfigAndRate(Dpl, CurrInfo, DefaultRootWindow(Dpl),
+        CurrentSizeId, CurrentRotation, TargetRate, CurrentTime);
+      }
+
+      XRRFreeScreenConfigInfo(CurrInfo);
+      XCloseDisplay(Dpl);
+    }
   }
 #endif
 }
