@@ -635,7 +635,11 @@ void cMpvPlayer::PlayerStart()
   check_error(mpv_set_option_string(hMpv, "alang", MpvPluginConfig->Languages.c_str()));
   check_error(mpv_set_option_string(hMpv, "cache", "no")); // video stutters if enabled
   check_error(mpv_set_option_string(hMpv, "sub-visibility", MpvPluginConfig->ShowSubtitles ? "yes" : "no"));
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,2)
   check_error(mpv_set_option_string(hMpv, "sub-forced-only", "yes"));
+#else
+  check_error(mpv_set_option_string(hMpv, "sub-forced-events-only", "yes"));
+#endif
   check_error(mpv_set_option_string(hMpv, "sub-auto", "all"));
   check_error(mpv_set_option_string(hMpv, "hr-seek", "yes"));
   check_error(mpv_set_option_string(hMpv, "write-filename-in-watch-later-config", "yes"));
@@ -652,7 +656,6 @@ void cMpvPlayer::PlayerStart()
 #ifdef DEBUG
   check_error(mpv_set_option_string(hMpv, "log-file", "/var/log/mpv"));
 #endif
-
   if (MpvPluginConfig->UsePassthrough)
   {
     check_error(mpv_set_option_string(hMpv, "audio-spdif", "ac3,dts"));
