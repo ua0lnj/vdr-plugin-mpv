@@ -51,6 +51,7 @@ xcb_window_t VideoWindow = 0;
 xcb_pixmap_t pixmap = XCB_NONE;
 xcb_cursor_t cursor = XCB_NONE;
 int is_softhddevice = 0;
+int VideoFullscreen = 0;
 extern volatile char ShownMenu;
 
 #ifdef __cplusplus
@@ -449,6 +450,10 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
     //get geometry
     xcb_get_geometry_cookie_t geocookie;
     xcb_get_geometry_reply_t *georeply;
+    xcb_get_property_cookie_t procookie;
+    xcb_get_property_reply_t *proreply;
+    xcb_intern_atom_reply_t *areply;
+    xcb_atom_t NetWmState;
 
     geocookie = xcb_get_geometry(*connect, window);
     georeply = xcb_get_geometry_reply(*connect, geocookie, NULL);
@@ -458,6 +463,28 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
       x = georeply->x;
       y = georeply->y;
       free(georeply);
+    }
+    areply = xcb_intern_atom_reply(*connect, xcb_intern_atom(*connect, 0, sizeof("_NET_WM_STATE") - 1, "_NET_WM_STATE"), NULL);
+    if (areply) {
+      NetWmState = areply->atom;
+      free(areply);
+
+      procookie = xcb_get_property(*connect, 0, window, NetWmState, XCB_ATOM_ATOM, 0, sizeof(xcb_atom_t));
+      proreply = xcb_get_property_reply(*connect, procookie, NULL);
+      if (proreply) {
+        xcb_atom_t NetWmStateFullscreen;
+        areply = xcb_intern_atom_reply(*connect, xcb_intern_atom(*connect, 0, sizeof("_NET_WM_STATE_FULLSCREEN") - 1, "_NET_WM_STATE_FULLSCREEN"), NULL);
+        if (areply) {
+          NetWmStateFullscreen = areply->atom;
+          free(areply);
+
+          if(((xcb_atom_t *)xcb_get_property_value(proreply))[0] == NetWmStateFullscreen)
+            VideoFullscreen = 1;
+          else
+            VideoFullscreen = 0;
+          free(proreply);
+        }
+      }
     }
   }
 
@@ -612,7 +639,7 @@ void cMpvPlayer::PlayerStart()
       sprintf(geo, "%dx%d+%d+%d", windowWidth, windowHeight, windowX, windowY);
       check_error(mpv_set_option_string(hMpv, "geometry", geo));
     }
-    if (!MpvPluginConfig->Windowed)
+    if (!MpvPluginConfig->Windowed || VideoFullscreen)
     {
       check_error(mpv_set_option_string(hMpv, "fullscreen", "yes"));
     }
