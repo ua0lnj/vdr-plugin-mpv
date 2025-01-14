@@ -35,7 +35,7 @@ cMpvControl::cMpvControl(string Filename, bool Shuffle)
       Player->SetWindowSize(w, h, x, y);
       xcb_flush(connect);
       connect = NULL;
-    }
+    } else Player->SetWindowSize(0, 0, 0, 0);
   }
   cStatus::MsgReplaying(this, Filename.c_str(), Filename.c_str(), true);
 }
