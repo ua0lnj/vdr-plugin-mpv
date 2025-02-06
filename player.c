@@ -467,11 +467,13 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
         if (areply) {
           NetWmStateFullscreen = areply->atom;
           free(areply);
-
-          if(((xcb_atom_t *)xcb_get_property_value(proreply))[0] == NetWmStateFullscreen)
-            VideoFullscreen = 1;
-          else
-            VideoFullscreen = 0;
+          VideoFullscreen = 0;
+          for (uint32_t i = 0; i < proreply->value_len; i++) {
+            if (((xcb_atom_t *)xcb_get_property_value(proreply))[i] == NetWmStateFullscreen) {
+              VideoFullscreen = 1;
+              break;
+            }
+          }
           free(proreply);
         }
       }
