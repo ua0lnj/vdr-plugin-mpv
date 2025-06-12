@@ -618,6 +618,7 @@ void cMpvPlayer::PlayerStart()
     drm_ctx = 1;
     if (!PlayerTryDRM()) return;
     check_error(mpv_set_option_string(hMpv, "drm-device", drm_dev));
+    check_error(mpv_set_option_string(hMpv, "target-colorspace-hint", "auto"));
   }
 #endif
   //window geometry with x11, drm-mode with drm
