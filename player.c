@@ -322,10 +322,18 @@ void cMpvPlayer::SetSubtitleTrack(eTrackType Type, const tTrackId *TrackId)
 {
   if (Type == ttNone)
   {
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,2)
     check_error(mpv_set_option_string(hMpv, "sub-forced-only", "yes"));
+#else
+    check_error(mpv_set_option_string(hMpv, "sub-forced-events-only", "yes"));
+#endif
     return;
   }
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,2)
   check_error(mpv_set_option_string(hMpv, "sub-forced-only", "no"));
+#else
+  check_error(mpv_set_option_string(hMpv, "sub-forced-events-only", "no"));
+#endif
   SetSubtitle(TrackId->id);
 }
 
