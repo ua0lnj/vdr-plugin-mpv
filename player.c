@@ -90,7 +90,7 @@ void set_deinterlace(mpv_handle *h)
     }
     else
     {
-      check_error(mpv_set_option_string(h, "deinterlace", "yes"));
+      check_error(mpv_set_option_string(h, "deinterlace", "auto"));
     }
 }
 
