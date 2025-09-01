@@ -370,7 +370,7 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
   xcb_query_tree_cookie_t  cookie;
   xcb_query_tree_reply_t *reply;
   xcb_window_t *child;
-  xcb_window_t parent = 0;
+  xcb_window_t parent1 = 0, parent2 = 0;
 
   if (!Dpy)
     Dpy = XOpenDisplay(MpvPluginConfig->X11Display.c_str());
@@ -404,41 +404,76 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
       //get children of root
       child = xcb_query_tree_children(reply);
 
-      xcb_query_tree_cookie_t  c_cookie;
-      xcb_query_tree_reply_t *c_reply;
-      xcb_window_t *c_child = NULL;
-      int c_len;
+      xcb_query_tree_cookie_t  cookie1, cookie2;
+      xcb_query_tree_reply_t *reply1, *reply2;
+      xcb_window_t *child1 = NULL, *child2 = NULL;
+      int len1, len2;
 
+      //Gnome have 1 child, KDE have 2 child
       for (i = 0; i < len; i++) {
-        //query child of child
-        c_cookie = xcb_query_tree(*connect,child[i]);
-        c_reply = xcb_query_tree_reply(*connect, c_cookie, 0);
-        c_len = xcb_query_tree_children_length(c_reply);
+        //query child of child 0
+        cookie1 = xcb_query_tree(*connect,child[i]);
+        reply1 = xcb_query_tree_reply(*connect, cookie1, 0);
+        len1 = xcb_query_tree_children_length(reply1);
 
-        if (c_len) {
-          //get children of child
-          c_child = xcb_query_tree_children(c_reply);
+        if (len1) {
+          //get children of child 0
+          child1 = xcb_query_tree_children(reply1);
         }
 
-        for (int o = 0; o < (c_len ? c_len : 1); o++){
-          //get child property
-          procookie = xcb_get_property(*connect, 0, c_len ? c_child[o] : child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
-          if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
-            if (xcb_get_property_value_length(proreply) > 0) {
-              string name = (char*)xcb_get_property_value(proreply);
-              if (name.find(need) != string::npos) {
-                  if (!c_len) window = child[i];
+        for (int p = 0; p < len1; p++) {
+          //query child of child 1
+          cookie2 = xcb_query_tree(*connect,child1[p]);
+          reply2 = xcb_query_tree_reply(*connect, cookie2, 0);
+          len2 = xcb_query_tree_children_length(reply2);
+
+          if (len2) {
+            //get children of child 1
+            child2 = xcb_query_tree_children(reply2);
+            parent1 = child[i];
+          } else {
+
+            //get child 1 property
+            procookie = xcb_get_property(*connect, 0, len1 ? child1[p] : child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
+            if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
+              if (xcb_get_property_value_length(proreply) > 0) {
+                string name = (char*)xcb_get_property_value(proreply);
+                if (name.find(need) != string::npos) {
+                  if (!len1) window = child[i];
                   else {
-                    window = c_child[o];
-                    parent = child[i];
+                    window = child1[p];
+                    parent1 = child[i];
                   }
                   break;
+                }
               }
+              free(proreply);
+            }
+            if (window) break;
+          }
+
+          for (int o = 0; o < (len2 ? len2 : 1); o++){
+            //get child property
+            procookie = xcb_get_property(*connect, 0, len2 ? child2[o] : child1[p], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
+            if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
+              if (xcb_get_property_value_length(proreply) > 0) {
+                string name = (char*)xcb_get_property_value(proreply);
+                if (name.find(need) != string::npos) {
+                  if (!len2) window = child1[p];
+                  else {
+                    window = child2[o];
+                    parent2 = child1[p];
+                  }
+                  break;
+                }
+              }
+              free(proreply);
             }
           }
-          free(proreply);
+          free(reply2);
         }
-        free(c_reply);
+        free(reply1);
+        if (window) break;
       }
     }
     free(reply);
@@ -488,12 +523,25 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
     }
   }
 
-  if (parent) {
+  if (parent1) {
     //get geometry
     xcb_get_geometry_cookie_t geocookie;
     xcb_get_geometry_reply_t *georeply;
 
-    geocookie = xcb_get_geometry(*connect, parent);
+    geocookie = xcb_get_geometry(*connect, parent1);
+    georeply = xcb_get_geometry_reply(*connect, geocookie, NULL);
+    if (georeply) {
+      x += georeply->x;
+      y += georeply->y;
+      free(georeply);
+    }
+  }
+  if (parent2) {
+    //get geometry
+    xcb_get_geometry_cookie_t geocookie;
+    xcb_get_geometry_reply_t *georeply;
+
+    geocookie = xcb_get_geometry(*connect, parent2);
     georeply = xcb_get_geometry_reply(*connect, geocookie, NULL);
     if (georeply) {
       x += georeply->x;
