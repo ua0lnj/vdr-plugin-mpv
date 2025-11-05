@@ -405,9 +405,9 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
       child = xcb_query_tree_children(reply);
 
       xcb_query_tree_cookie_t  cookie1, cookie2;
-      xcb_query_tree_reply_t *reply1, *reply2;
+      xcb_query_tree_reply_t *reply1 = NULL, *reply2 = NULL;
       xcb_window_t *child1 = NULL, *child2 = NULL;
-      int len1, len2;
+      int len1 = 0, len2 = 0;
 
       //Gnome have 1 child, KDE have 2 child
       for (i = 0; i < len; i++) {
@@ -421,19 +421,36 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
           child1 = xcb_query_tree_children(reply1);
         }
 
-        for (int p = 0; p < len1; p++) {
+        for (int p = 0; p < (len1 ? len1 : 1); p++) {
           //query child of child 1
-          cookie2 = xcb_query_tree(*connect,child1[p]);
-          reply2 = xcb_query_tree_reply(*connect, cookie2, 0);
-          len2 = xcb_query_tree_children_length(reply2);
+
+          if (len1) {
+            cookie2 = xcb_query_tree(*connect,child1[p]);
+            reply2 = xcb_query_tree_reply(*connect, cookie2, 0);
+            len2 = xcb_query_tree_children_length(reply2);
+          }
 
           if (len2) {
             //get children of child 1
             child2 = xcb_query_tree_children(reply2);
             parent1 = child[i];
-          } else {
 
-            //get child 1 property
+            for (int o = 0; o < len2; o++){
+              //get child2 property
+              procookie = xcb_get_property(*connect, 0, child2[o], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
+              if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
+                if (xcb_get_property_value_length(proreply) > 0) {
+                  string name = (char*)xcb_get_property_value(proreply);
+                  if (name.find(need) != string::npos) {
+                    window = child2[o];
+                    parent2 = child1[p];
+                  }
+                }
+                free(proreply);
+              }
+            }
+          } else {
+            //get child1/child property
             procookie = xcb_get_property(*connect, 0, len1 ? child1[p] : child[i], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
             if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
               if (xcb_get_property_value_length(proreply) > 0) {
@@ -444,33 +461,13 @@ void cMpvPlayer::PlayerGetWindow(string need, xcb_connection_t **connect, xcb_wi
                     window = child1[p];
                     parent1 = child[i];
                   }
-                  break;
-                }
-              }
-              free(proreply);
-            }
-            if (window) break;
-          }
-
-          for (int o = 0; o < (len2 ? len2 : 1); o++){
-            //get child property
-            procookie = xcb_get_property(*connect, 0, len2 ? child2[o] : child1[p], property, XCB_GET_PROPERTY_TYPE_ANY, 0, 1000);
-            if (proreply = xcb_get_property_reply(*connect, procookie, NULL)) {
-              if (xcb_get_property_value_length(proreply) > 0) {
-                string name = (char*)xcb_get_property_value(proreply);
-                if (name.find(need) != string::npos) {
-                  if (!len2) window = child1[p];
-                  else {
-                    window = child2[o];
-                    parent2 = child1[p];
-                  }
-                  break;
                 }
               }
               free(proreply);
             }
           }
-          free(reply2);
+          if (len1) free(reply2);
+          if (window) break;
         }
         free(reply1);
         if (window) break;
