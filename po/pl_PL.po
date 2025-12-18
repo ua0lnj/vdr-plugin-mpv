@@ -1,0 +1,145 @@
+# VDR MPV plugin language source file.
+# Copyright (C) 2012-2013 by Johns, 2013-2015 by Maniac, 2020-2025 by ua0lnj
+# This file is distributed under the same license as the vdr-mpv package.
+# Tomasz Maciej Nowak <tomek_n@o2.pl>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: vdr-mpv 1.8.3\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2025-11-05 13:43+0100\n"
+"PO-Revision-Date: 2025-12-18 19:18+0100\n"
+"Last-Translator: tomek_n@o2.pl\n"
+"Language-Team: vdr@linuxtv.org\n"
+"Language: pl_PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Recording - can't rewind"
+msgstr "Nagrywanie - nie można cofać"
+
+msgid "Recording - can't forwarding"
+msgstr "Nagrywanie - nie przewijać"
+
+msgid "Recording - can't seek"
+msgstr "Nagrywanie - nie można przeskakiwać"
+
+msgid "Recording - stop record first!"
+msgstr "Nagrywanie - najpierw zatrzymaj!"
+
+msgid "Recording Stoped"
+msgstr "Nagrywanie zatrzymane"
+
+msgid "Recording - can't next"
+msgstr "Nagrywanie - nie można przejść do następnego"
+
+msgid "Recording - can't prev"
+msgstr "Nagrywanie - nie można przejść do poprzedniego"
+
+msgid "Not network stream, can't recording!"
+msgstr "Nie można nagrać innych niż strumień sieciowy!"
+
+msgid "Recording Started"
+msgstr "Nagrywanie rozpoczęte"
+
+#. TRANSLATORS: note the trailing blank!
+msgid "Jump: "
+msgstr "Skok: "
+
+msgid "Filebrowser"
+msgstr "Przeglądarka plików"
+
+msgid "Disc"
+msgstr "Płyta"
+
+msgid "PlayDir"
+msgstr "Odtwórz katalog"
+
+msgid "Remove"
+msgstr "Usuń"
+
+msgid "Shuffle"
+msgstr "Mieszaj"
+
+msgid "Playlist cannot be created!"
+msgstr "Nie można utworzyć listy odtwarzania!"
+
+msgid "Not empty directory, can't remove!"
+msgstr "Nie można usunąć, katalog nie jest pusty!"
+
+msgid "Remove empty directory?"
+msgstr "Usunąć pusty katalog?"
+
+msgid "Unable to remove directory!"
+msgstr "Nie można usunąć katalogu!"
+
+msgid "Remove file?"
+msgstr "Usunąć plik?"
+
+msgid "Unable to remove file!"
+msgstr "Nie można usunąć pliku!"
+
+msgid "Options"
+msgstr "Opcje"
+
+msgid "Show chapters"
+msgstr "Pokaż rozdziały"
+
+msgid "Show playlist"
+msgstr "Pokaż listę odtwarzania"
+
+msgid "Chapters"
+msgstr "Rozdziały"
+
+msgid "Playlist"
+msgstr "Lista odtwarzania"
+
+msgid "Recording - can't play!"
+msgstr "Nagrywanie - nie można odtworzyć!"
+
+msgid "mpv player plugin"
+msgstr "Odtwarzacz plików multimedialnych"
+
+msgid "Black screen"
+msgstr "Czarny ekran"
+
+msgid "Hide main menu entry"
+msgstr "Ukryj pozycję w głównym menu"
+
+msgid "Video Deinterlace"
+msgstr "Usuwanie przeplotu"
+
+msgid "Audio Passthrough"
+msgstr "Przekazywanie dźwięku"
+
+msgid "DTS-HD Passthrough"
+msgstr "  DTS-HD"
+
+msgid "Enable stereo downmix"
+msgstr "  Włącz degradację stereo"
+
+msgid "Software volume control"
+msgstr "Programowa kontrola głośności"
+
+msgid "Use prev/next keys for playlist control"
+msgstr "Użyj Poprzednie/Następne do kontroli listy odtwarzania"
+
+msgid "Control playlist if no chapters in file"
+msgstr "  Kontroluj listę jeżeli brak rozdziałów"
+
+msgid "Show media title instead of filename"
+msgstr "Pokaż tytuł zamiast nazwy pliku"
+
+msgid "Show subtitles"
+msgstr "Pokaż napisy"
+
+msgid "Exit at the end"
+msgstr "Zakończ i wyjdź"
+
+msgid "Show after stop"
+msgstr "Pokaż po zatrzymaniu"
+
+msgid "Save position on quit"
+msgstr "Zapisz pozycję na zakończenie"
