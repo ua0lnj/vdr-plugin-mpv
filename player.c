@@ -681,7 +681,6 @@ void cMpvPlayer::PlayerStart()
     drm_ctx = 1;
     if (!PlayerTryDRM()) return;
     check_error(mpv_set_option_string(hMpv, "drm-device", drm_dev), "drm-device");
-    check_error(mpv_set_option_string(hMpv, "target-colorspace-hint", "auto"), "target-colorspace-hint");
   }
 #endif
   //window geometry with x11, drm-mode with drm
@@ -709,6 +708,10 @@ void cMpvPlayer::PlayerStart()
     }
   }
 #endif
+  if (!strcmp(MpvPluginConfig->VideoOut.c_str(),"gpu-next"))
+  {
+    check_error(mpv_set_option_string(hMpv, "target-colorspace-hint", "auto"), "target-colorspace-hint");
+  }
   if (MpvPluginConfig->UseDeinterlace)
   {
     set_deinterlace(hMpv);
