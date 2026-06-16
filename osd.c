@@ -131,7 +131,11 @@ void cMpvOsd::WriteToMpv(int sw, int sh, int x, int y, int w, int h, const uint8
       }
     }
   }
+#if MPV_CLIENT_API_VERSION < MPV_MAKE_VERSION(2,5)
   snprintf (cmd, sizeof(cmd), "overlay-add 1 0 0 @%d  0 \"bgra\" %d %d %d\n", fdOsd, winWidth, winHeight, winWidth * 4);
+#else
+  snprintf (cmd, sizeof(cmd), "overlay-add 1 0 0 &%p  0 \"bgra\" %d %d %d\n", pOsd, winWidth, winHeight, winWidth * 4);
+#endif
   Player->SendCommand (cmd);
 }
 
